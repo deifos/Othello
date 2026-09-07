@@ -1,0 +1,110 @@
+.characters-page .section-intro {
+  padding-bottom: 30px;
+}
+button.big-pal {
+  padding: 0;
+  background: transparent;
+  transition: none;
+}
+button.big-pal:not(:disabled):active {
+  transform: none;
+}
+.pill-color-switch {
+  margin: 25px auto 0;
+  padding: 0;
+  border: 0;
+  width: fit-content;
+  min-width: 0;
+}
+.pill-color-switch legend {
+  float: none;
+  width: 100%;
+  margin-bottom: 9px;
+  padding: 0;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-align: center;
+  text-transform: uppercase;
+}
+.pill-color-options {
+  display: inline-flex;
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 35px;
+  background: var(--soft);
+}
+.pill-color-option {
+  display: flex;
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  min-width: 147px;
+  padding: 6px 13px 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 27px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background 160ms,
+    color 160ms,
+    box-shadow 160ms;
+}
+.pill-color-option:hover {
+  color: var(--ink);
+}
+.pill-color-option.is-chosen {
+  color: var(--green-dark);
+  background: var(--panel);
+  border-color: var(--line);
+  box-shadow: 0 2px 5px #5e653416;
+}
+.pill-color-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.pill-color-option:has(input:focus-visible) {
+  outline: 3px solid #cc9e42;
+  outline-offset: 3px;
+}
+.pill-color-check {
+  opacity: 0;
+}
+.is-chosen .pill-color-check {
+  opacity: 1;
+}
+[data-theme="dark"] .pill-color-option.is-chosen {
+  color: #d5e6ad;
+}
+@media (max-width: 740px) {
+  .pill-color-switch {
+    margin-top: 21px;
+  }
+  .pill-color-option {
+    min-width: 137px;
+    gap: 6px;
+    font-size: 12px;
+  }
+}
+@media (max-width: 380px) {
+  .pill-color-options {
+    gap: 2px;
+    padding: 4px;
+  }
+  .pill-color-option {
+    min-width: 124px;
+    padding-inline: 7px;
+    gap: 5px;
+  }
+  .pill-color-check {
+    width: 12px;
+  }
+}

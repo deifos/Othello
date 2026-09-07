@@ -1,0 +1,255 @@
+.home-lesson {
+  container-type: inline-size;
+  position: relative;
+  min-width: 0;
+  min-height: 214px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(118deg, var(--panel) 36%, #f7f9f4 65%, #e7f3f5);
+  box-shadow: var(--shadow);
+}
+
+.home-lesson-copy {
+  position: relative;
+  z-index: 2;
+  width: 68%;
+  padding: 22px 0 23px 25px;
+}
+
+.home-lesson h2 {
+  margin: 0;
+  font-size: 23px;
+  font-weight: 900;
+  line-height: 1.25;
+  letter-spacing: -0.65px;
+}
+
+.home-lesson h2 button {
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font: inherit;
+  letter-spacing: inherit;
+  transition: color 150ms ease;
+}
+
+.home-lesson h2 button:hover {
+  color: var(--green-dark);
+}
+
+.home-lesson h2 button:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 5px;
+  border-radius: 3px;
+}
+
+.home-lesson-copy > p {
+  max-width: 342px;
+  margin: 11px 0 17px;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.75;
+}
+
+.home-lesson-stages {
+  display: flex;
+  align-items: flex-start;
+  width: min(100%, 355px);
+  gap: 7px;
+}
+
+.home-lesson-stage-pair {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  gap: 7px;
+  min-width: 0;
+}
+
+.home-lesson-stage-pair:first-child {
+  flex: 0.83;
+}
+
+.home-lesson-stage {
+  min-width: 0;
+  flex: 1;
+  text-align: center;
+}
+
+.home-lesson-pills {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 44px;
+  padding: 4px;
+  border: 1.5px solid #ced49c;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #f1f2d4, #fbf7e5);
+  box-shadow: inset 0 1px 1px #fff8;
+}
+
+.home-lesson-pill {
+  position: relative;
+  display: block;
+  flex: 0 1 17px;
+  width: 17px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  box-shadow: 0 2px 2px #4e50322b;
+}
+
+.home-lesson-pill.is-black {
+  border: 1px solid #414639;
+  background: radial-gradient(circle at 35% 24%, #777a69, #41463b 65%, #33382c);
+}
+
+.home-lesson-pill.is-white {
+  border: 1px solid #e1d8ba;
+  background: radial-gradient(circle at 35% 24%, #fffef5, #fffaf0 52%, #e7dfc7);
+}
+
+.home-lesson-pill.is-new {
+  outline: 2px solid #adca70;
+  outline-offset: 1px;
+}
+
+.home-lesson-pill.is-flipped {
+  border-color: #729547;
+  background: radial-gradient(circle at 35% 24%, #a6c775, #729449 70%, #63843e);
+}
+
+.home-lesson-pill.is-flipped::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid #e9f3c1;
+  border-radius: 50%;
+}
+
+.home-lesson-arrow {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 14px;
+  stroke-width: 2.7;
+}
+
+.home-lesson-label {
+  display: block;
+  margin-top: 6px;
+  font-size: 11.5px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.home-lesson-garden {
+  position: absolute;
+  z-index: 1;
+  right: -9px;
+  bottom: -7px;
+  width: 43%;
+  aspect-ratio: 300 / 230;
+  pointer-events: none;
+}
+
+.home-lesson-landscape,
+.home-lesson-leaf {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.home-lesson-bear {
+  position: absolute;
+  left: 31%;
+  top: 1%;
+  width: 47.33%;
+  height: auto;
+  filter: drop-shadow(0 4px 2px #795e3e18);
+}
+
+[data-theme="dark"] .home-lesson {
+  background: linear-gradient(118deg, var(--panel) 38%, #323c31);
+}
+
+[data-theme="dark"] .home-lesson-garden {
+  filter: brightness(0.83) saturate(0.85);
+}
+
+[data-theme="dark"] .home-lesson-pills {
+  border-color: #70804b;
+  background: linear-gradient(135deg, #455038, #4f543d);
+}
+
+@container (max-width: 520px) {
+  .home-lesson-copy {
+    width: 100%;
+    padding: 21px 20px 23px;
+  }
+
+  .home-lesson-copy > p {
+    max-width: 59%;
+    min-height: 65px;
+    font-size: 12px;
+    line-height: 1.6;
+    margin-bottom: 17px;
+  }
+
+  .home-lesson-garden {
+    width: 43%;
+    top: 4px;
+    bottom: auto;
+    right: -2px;
+  }
+
+  .home-lesson-stages {
+    width: 100%;
+    max-width: 380px;
+    gap: 6px;
+  }
+
+  .home-lesson-stage-pair {
+    gap: 6px;
+  }
+}
+
+@container (max-width: 360px) {
+  .home-lesson-copy {
+    padding: 20px 17px 22px;
+  }
+
+  .home-lesson h2 {
+    font-size: 21px;
+  }
+
+  .home-lesson-copy > p {
+    max-width: 60%;
+  }
+
+  .home-lesson-garden {
+    top: 20px;
+  }
+
+  .home-lesson-stages,
+  .home-lesson-stage-pair {
+    gap: 4px;
+  }
+
+  .home-lesson-arrow {
+    width: 12px;
+  }
+
+  .home-lesson-label {
+    font-size: 10.5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-lesson h2 button {
+    transition: none;
+  }
+}

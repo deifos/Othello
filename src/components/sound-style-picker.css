@@ -1,0 +1,116 @@
+.sound-style-picker {
+  min-width: 0;
+  margin: 17px 0 0;
+  padding: 0 0 17px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.sound-style-picker legend {
+  padding: 0;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.sound-style-options {
+  display: grid;
+  gap: 7px;
+}
+
+.sound-style-option {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--cream);
+}
+
+.sound-style-option.is-selected {
+  border-color: #b7c58f;
+  background: #f1f5e8;
+}
+
+.sound-style-label {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 11px 0 0 11px;
+  cursor: pointer;
+}
+
+.sound-style-label input {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--green);
+  cursor: pointer;
+}
+
+.sound-style-copy {
+  min-width: 0;
+}
+
+.sound-style-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sound-style-name svg {
+  color: var(--green);
+}
+
+.sound-style-description {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.sound-style-preview {
+  flex: 0 0 44px;
+  min-height: 44px;
+  padding: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0 11px 11px 0;
+  background: transparent;
+  color: var(--green-dark);
+}
+
+.sound-style-preview:not(:disabled):hover {
+  background: #8da85a18;
+}
+
+.sound-style-picker .sound-style-note {
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+[data-theme="dark"] .sound-style-option.is-selected {
+  border-color: #6c8050;
+  background: #353d2c;
+}
+
+[data-theme="dark"] .sound-style-preview {
+  color: #c5d69f;
+}
+
+@media (max-width: 380px) {
+  .sound-style-label {
+    gap: 7px;
+    padding-inline: 9px;
+  }
+}

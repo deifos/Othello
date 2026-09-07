@@ -1,0 +1,1041 @@
+@media (min-width: 1450px) {
+  .app-shell {
+    padding-left: 60px !important;
+    padding-right: 60px !important;
+  }
+  .hero {
+    height: 580px !important;
+  }
+  .hero-content {
+    padding-top: 49px !important;
+  }
+  .hero h1 {
+    font-size: 110px !important;
+  }
+  .hero-content > p {
+    font-size: 16px !important;
+  }
+  .hero-art {
+    width: 79% !important;
+  }
+  .hero-note {
+    margin-top: 29px !important;
+  }
+  .site-header {
+    min-height: 117px !important;
+  }
+}
+@media (max-width: 1250px) {
+  .app-shell {
+    padding: 0 30px !important;
+  }
+  .site-header {
+    gap: 18px !important;
+  }
+  .wordmark {
+    font-size: 24px !important;
+  }
+  .site-header nav {
+    gap: 2px !important;
+  }
+  .site-header nav button {
+    font-size: 12px !important;
+    padding: 12px 10px !important;
+    gap: 6px !important;
+  }
+  .header-actions {
+    gap: 12px !important;
+  }
+  .profile-button > span {
+    max-width: 73px !important;
+  }
+  .hero-content {
+    padding-left: 35px !important;
+  }
+  .hero {
+    height: 515px !important;
+  }
+  .hero h1 {
+    font-size: 89px !important;
+  }
+  .hero-art {
+    right: -5% !important;
+    width: 82% !important;
+  }
+  .hero-content > p {
+    font-size: 14px !important;
+  }
+  .characters-layout {
+    grid-template-columns: minmax(0, 1fr) 260px !important;
+    gap: 20px !important;
+  }
+  .character-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+  .character-card {
+    min-height: 200px !important;
+  }
+  .leaderboard-layout {
+    grid-template-columns: minmax(0, 1fr) 290px !important;
+    gap: 20px !important;
+  }
+  .leaderboard-hero h1 {
+    font-size: 35px !important;
+  }
+  .leaderboard-hero > div {
+    padding: 31px 25px !important;
+  }
+  .hero-buttons {
+    gap: 9px !important;
+  }
+  .hero-buttons .button {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+  }
+  .your-pal-card {
+    padding: 23px 25px !important;
+  }
+  .your-pal-card h2 {
+    font-size: 24px !important;
+  }
+  .home-bottom {
+    font-size: 10px !important;
+  }
+  .game-layout {
+    grid-template-columns: minmax(0, 1fr) 258px !important;
+    gap: 20px !important;
+  }
+  .board-panel {
+    padding: 22px 18px 17px 13px !important;
+  }
+  .player-card {
+    padding: 16px 18px 13px !important;
+    gap: 12px !important;
+  }
+  .level-badge {
+    font-size: 9px !important;
+  }
+  .lesson-row {
+    gap: 0 !important;
+  }
+  .lesson-row > svg,
+  .lesson-row > span {
+    width: 51px !important;
+    height: 51px !important;
+  }
+  .how-step {
+    padding: 22px !important;
+  }
+  .how-access {
+    gap: 17px !important;
+  }
+}
+@media (max-width: 1000px) {
+  .site-header {
+    flex-wrap: wrap !important;
+    min-height: 120px !important;
+    gap: 10px !important;
+    padding: 22px 0 14px !important;
+    margin-bottom: 23px !important;
+  }
+  .site-header nav {
+    order: 3 !important;
+    width: 100% !important;
+    justify-content: center !important;
+    border-top: 1px solid var(--line);
+    padding-top: 9px !important;
+    margin-top: 4px !important;
+    gap: 15px !important;
+  }
+  .site-header nav button {
+    font-size: 13px !important;
+    padding: 10px 20px !important;
+  }
+  .header-actions {
+    margin-left: auto !important;
+  }
+  .profile-button > span {
+    max-width: 130px !important;
+  }
+  .hero-art {
+    right: -17% !important;
+    width: 88% !important;
+  }
+  .hero:after {
+    background: linear-gradient(
+      90deg,
+      #fffbf2 0%,
+      #fffbf2ed 25%,
+      #fffbf270 46%,
+      transparent 67%
+    ) !important;
+  }
+  .hero-content {
+    padding: 39px 0 0 30px !important;
+  }
+  .hero h1 {
+    font-size: 83px !important;
+  }
+  .hero .eyebrow {
+    font-size: 8px !important;
+    letter-spacing: 1.7px !important;
+  }
+  .hero-content > p {
+    font-size: 13px !important;
+  }
+  .hero-buttons .button {
+    font-size: 13px !important;
+    padding: 14px 16px !important;
+    gap: 8px !important;
+  }
+  .hero-note {
+    font-size: 9px !important;
+    max-width: 290px !important;
+    line-height: 1.5 !important;
+  }
+  .hero {
+    height: 490px !important;
+  }
+  .art-caption {
+    right: 20px !important;
+    font-size: 9px !important;
+    bottom: 20px !important;
+  }
+  .home-details {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 17px !important;
+  }
+  .feature-strip {
+    padding: 23px 5px !important;
+  }
+  .feature-strip > div {
+    padding: 0 5px !important;
+  }
+  .feature-strip h3 {
+    font-size: 11px !important;
+  }
+  .feature-strip p {
+    font-size: 10px !important;
+  }
+  .your-pal-card {
+    padding: 20px !important;
+  }
+  .your-pal-card h2 {
+    font-size: 22px !important;
+  }
+  .your-pal-card p {
+    font-size: 10px !important;
+    max-width: 180px !important;
+  }
+  .pal-pedestal > svg {
+    width: 83px !important;
+    height: 83px !important;
+  }
+  .your-pal-card .eyebrow {
+    font-size: 7px !important;
+  }
+  .home-bottom {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 13px 30px !important;
+  }
+  .site-footer > span {
+    display: none !important;
+  }
+  .game-layout {
+    grid-template-columns: minmax(0, 1fr) 220px !important;
+    gap: 17px !important;
+  }
+  .board-heading-title {
+    gap: 8px !important;
+  }
+  .board-heading h1 {
+    font-size: 22px !important;
+  }
+  .board-heading p {
+    font-size: 10px !important;
+  }
+  .board-heading-title > svg {
+    width: 24px !important;
+  }
+  .level-badge {
+    display: none !important;
+  }
+  .turn-card {
+    padding: 17px 16px !important;
+  }
+  .turn-card h2 {
+    font-size: 14px !important;
+  }
+  .turn-card p {
+    font-size: 10px !important;
+  }
+  .player-card {
+    gap: 10px !important;
+    padding: 14px !important;
+  }
+  .player-card > svg,
+  .player-card > .result-portrait {
+    width: 64px !important;
+    height: 64px !important;
+  }
+  .player-title {
+    font-size: 13px !important;
+  }
+  .player-score {
+    font-size: 27px !important;
+  }
+  .score-track {
+    gap: 7px !important;
+  }
+  .score-track span {
+    width: 11px !important;
+    height: 11px !important;
+  }
+  .game-tools .button {
+    font-size: 10px !important;
+    gap: 4px !important;
+  }
+  .game-sidebar {
+    gap: 11px !important;
+  }
+  .board-tip {
+    padding: 12px !important;
+    margin-top: 14px !important;
+    margin-left: 4px !important;
+  }
+  .board-tip p {
+    font-size: 10px !important;
+  }
+  .board-tip > svg {
+    width: 20px !important;
+  }
+  .board-panel {
+    padding: 20px 13px 14px 8px !important;
+  }
+  .change-pal {
+    font-size: 9px !important;
+  }
+  .characters-layout {
+    grid-template-columns: minmax(0, 1fr) 240px !important;
+  }
+  .character-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 12px !important;
+  }
+  .selected-pal {
+    padding: 27px 17px !important;
+  }
+  .big-pal > svg:not(:first-child):not(:last-child) {
+    width: 150px !important;
+    height: 150px !important;
+  }
+  .leaderboard-layout {
+    grid-template-columns: minmax(0, 1fr) 260px !important;
+    gap: 17px !important;
+  }
+  .leaderboard-hero {
+    height: 250px !important;
+  }
+  .leaderboard-hero h1 {
+    font-size: 30px !important;
+  }
+  .leaderboard-hero p {
+    font-size: 12px !important;
+  }
+  .leaderboard-hero img {
+    width: 122% !important;
+    max-width: none !important;
+    right: -14% !important;
+  }
+  .leaderboard-hero:after {
+    background: linear-gradient(90deg, #fffcf5ed, #fffcf540 75%) !important;
+  }
+  .your-rank-card {
+    padding: 20px 14px 14px !important;
+  }
+  .your-rank-main {
+    gap: 8px !important;
+  }
+  .your-rank-main > svg {
+    width: 70px !important;
+    height: 70px !important;
+  }
+  .your-rank-main strong {
+    font-size: 25px !important;
+  }
+  .leaf-quote {
+    padding: 19px !important;
+  }
+  .leaf-quote p {
+    font-size: 17px !important;
+  }
+  .leaf-quote > svg {
+    width: 42px !important;
+  }
+  .ranking-explainer {
+    padding: 20px !important;
+  }
+  .ranking-explainer h2 {
+    font-size: 21px !important;
+  }
+  th,
+  td {
+    padding-left: 7px !important;
+    padding-right: 7px !important;
+  }
+  .ranking-player {
+    gap: 7px !important;
+  }
+  .ranking-table-panel {
+    padding: 14px 10px !important;
+  }
+  .ranking-player > svg {
+    width: 34px !important;
+    height: 34px !important;
+  }
+  .ranking-player strong {
+    font-size: 11px !important;
+  }
+  .ranking-player small {
+    font-size: 9px !important;
+  }
+  .leaderboard-tabs button {
+    font-size: 11px !important;
+    padding: 9px 8px !important;
+    gap: 6px !important;
+  }
+  .leaderboard-tabs button svg {
+    width: 16px !important;
+  }
+  .how-steps {
+    gap: 15px !important;
+  }
+  .how-step {
+    padding: 19px !important;
+  }
+  .lesson-row > svg,
+  .lesson-row > span {
+    width: 43px !important;
+    height: 43px !important;
+  }
+  .how-step h2 {
+    font-size: 22px !important;
+  }
+  .how-step p {
+    font-size: 12px !important;
+  }
+  .how-bottom {
+    padding: 23px !important;
+  }
+  .how-bottom .button {
+    font-size: 13px !important;
+    padding: 14px 18px !important;
+  }
+  .section-intro h1 {
+    font-size: 38px !important;
+  }
+}
+@media (max-width: 740px) {
+  .app-shell {
+    padding: 0 18px !important;
+  }
+  .site-header {
+    padding-top: 19px !important;
+    gap: 13px !important;
+  }
+  .wordmark {
+    font-size: 22px !important;
+  }
+  .header-actions {
+    gap: 10px !important;
+  }
+  .profile-button {
+    gap: 5px !important;
+  }
+  .profile-button > span {
+    display: none !important;
+  }
+  .profile-button > svg:last-child {
+    display: none !important;
+  }
+  .theme-switch button {
+    width: 29px !important;
+    height: 29px !important;
+  }
+  .theme-switch button svg {
+    width: 16px !important;
+  }
+  .site-header nav {
+    gap: 3px !important;
+    justify-content: space-between !important;
+    padding-top: 11px !important;
+  }
+  .site-header nav button {
+    padding: 9px 10px !important;
+    font-size: 11px !important;
+    gap: 6px !important;
+  }
+  .site-header nav button svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+  .hero {
+    height: 670px !important;
+  }
+  .hero-content {
+    padding: 31px 26px 0 !important;
+    max-width: none !important;
+  }
+  .hero .eyebrow {
+    font-size: 8px !important;
+  }
+  .hero h1 {
+    font-size: 76px !important;
+    line-height: 1 !important;
+    margin: 19px 0 16px !important;
+  }
+  .hero h1 br {
+    display: none !important;
+  }
+  .hero h1 {
+    max-width: 400px !important;
+  }
+  .hero h1 > span {
+    display: block !important;
+  }
+  .hero-sparkle {
+    right: 28px !important;
+    top: 76px !important;
+    width: 29px !important;
+  }
+  .hero-art {
+    height: 56% !important;
+    width: 112% !important;
+    right: -6% !important;
+    top: auto !important;
+    bottom: -5px !important;
+    object-position: center 68% !important;
+  }
+  .hero:after {
+    background: linear-gradient(
+      180deg,
+      #fffbf2 0%,
+      #fffbf2 39%,
+      #fffbf28c 48%,
+      transparent 64%
+    ) !important;
+  }
+  .ribbon {
+    font-size: 11px !important;
+    padding: 5px 18px !important;
+    margin-bottom: 12px !important;
+  }
+  .hero-content > p {
+    font-size: 13px !important;
+  }
+  .hero-buttons {
+    margin-top: 19px !important;
+  }
+  .hero-buttons .button {
+    padding: 14px 18px !important;
+    font-size: 13px !important;
+  }
+  .hero-note {
+    margin-top: 19px !important;
+    font-size: 9px !important;
+    max-width: none !important;
+  }
+  .art-caption {
+    font-size: 8px !important;
+    bottom: 18px !important;
+    right: 24px !important;
+  }
+  .home-details {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+    margin-top: 18px !important;
+  }
+  .feature-strip {
+    padding: 24px 10px !important;
+  }
+  .feature-strip h3 {
+    font-size: 12px !important;
+  }
+  .feature-strip p {
+    font-size: 11px !important;
+  }
+  .your-pal-card {
+    padding: 25px 29px !important;
+  }
+  .your-pal-card h2 {
+    font-size: 26px !important;
+  }
+  .your-pal-card .eyebrow {
+    font-size: 9px !important;
+  }
+  .your-pal-card p {
+    font-size: 12px !important;
+    max-width: 220px !important;
+  }
+  .pal-pedestal > svg {
+    width: 100px !important;
+    height: 100px !important;
+  }
+  .home-bottom {
+    padding: 22px 0 !important;
+    gap: 12px !important;
+    font-size: 10px !important;
+    flex-direction: column !important;
+  }
+  .site-footer {
+    font-size: 8px !important;
+    padding: 22px 0 !important;
+    gap: 10px !important;
+  }
+  .site-footer .wordmark {
+    font-size: 13px !important;
+  }
+  .site-footer .wordmark > svg {
+    width: 10px !important;
+  }
+  .site-footer > div > svg {
+    display: none !important;
+  }
+  .page-topline {
+    margin-bottom: 20px !important;
+  }
+  .page-topline .text-link {
+    font-size: 10px !important;
+  }
+  .page-topline > div {
+    gap: 14px !important;
+  }
+  .mode-tag {
+    font-size: 8px !important;
+    letter-spacing: 0.7px !important;
+  }
+  .game-layout {
+    grid-template-columns: 1fr !important;
+    gap: 17px !important;
+  }
+  .board-panel {
+    padding: 17px 13px 15px 6px !important;
+    order: 2 !important;
+  }
+  .board-heading {
+    padding: 0 7px 12px 12px !important;
+  }
+  .board-heading-title > svg {
+    width: 27px !important;
+  }
+  .board-heading h1 {
+    font-size: 24px !important;
+  }
+  .board-heading p {
+    font-size: 10px !important;
+  }
+  .board-with-labels {
+    grid-template-columns: 19px minmax(0, 1fr) !important;
+    grid-template-rows: 21px auto !important;
+    gap: 3px !important;
+  }
+  .column-labels,
+  .row-labels {
+    font-size: 10px !important;
+  }
+  .game-sidebar {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 11px !important;
+    order: 1 !important;
+  }
+  .turn-card {
+    grid-column: 1/-1 !important;
+    padding: 14px 18px !important;
+    min-height: 0 !important;
+  }
+  .turn-card > div {
+    gap: 8px !important;
+  }
+  .turn-card h2 {
+    font-size: 16px !important;
+  }
+  .turn-card p {
+    font-size: 11px !important;
+    margin-top: 5px !important;
+  }
+  .player-card {
+    gap: 9px !important;
+    padding: 12px 13px !important;
+    flex-wrap: nowrap !important;
+  }
+  .player-card > svg,
+  .player-card > .result-portrait {
+    width: 57px !important;
+    height: 57px !important;
+  }
+  .player-card .score-track {
+    display: none !important;
+  }
+  .player-title {
+    font-size: 12px !important;
+  }
+  .player-score {
+    font-size: 25px !important;
+    margin-top: 1px !important;
+  }
+  .player-name {
+    font-size: 8px !important;
+    max-width: 95px !important;
+  }
+  .player-card.is-active:before {
+    right: 10px !important;
+    top: 11px !important;
+  }
+  .player-title .you-tag,
+  .player-title .cpu-tag {
+    font-size: 8px !important;
+    line-height: 1.3 !important;
+  }
+  .match-stats {
+    grid-column: 1/-1 !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    padding: 12px 18px !important;
+  }
+  .match-stats > div {
+    display: flex !important;
+    align-items: center !important;
+    gap: 13px !important;
+  }
+  .match-stats > div + div {
+    border: 0 !important;
+  }
+  .match-stats strong {
+    font-size: 19px !important;
+    margin-top: 0 !important;
+  }
+  .match-stats > div > span {
+    font-size: 10px !important;
+  }
+  .game-tools {
+    grid-column: 1 !important;
+  }
+  .game-tools .button {
+    font-size: 11px !important;
+    padding: 13px 8px !important;
+    gap: 5px !important;
+  }
+  .place-button {
+    grid-column: 2 !important;
+    grid-row: auto !important;
+    font-size: 13px !important;
+    min-height: 45px !important;
+  }
+  .change-pal {
+    grid-column: 1 !important;
+    padding: 6px 10px !important;
+    font-size: 9px !important;
+  }
+  .autosave {
+    grid-column: 2 !important;
+    margin: 0 !important;
+    padding: 6px 10px !important;
+    font-size: 8px !important;
+    justify-content: center !important;
+  }
+  .board-tip {
+    min-height: 51px !important;
+    padding: 10px 12px !important;
+    margin-top: 15px !important;
+    margin-left: 9px !important;
+  }
+  .game-page {
+    padding-bottom: 25px !important;
+  }
+  .game-layout {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .game-sidebar {
+    width: 100% !important;
+    display: contents !important;
+  }
+  .turn-card {
+    order: 0 !important;
+    width: 100% !important;
+  }
+  .board-panel {
+    order: 1 !important;
+    width: 100% !important;
+  }
+  .player-card {
+    order: 2 !important;
+    width: calc(50% - 6px) !important;
+  }
+  .game-layout {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+  }
+  .match-stats {
+    order: 3 !important;
+    width: 100% !important;
+  }
+  .game-tools {
+    order: 4 !important;
+    width: calc(50% - 6px) !important;
+  }
+  .place-button {
+    order: 4 !important;
+    width: calc(50% - 6px) !important;
+  }
+  .change-pal {
+    order: 5 !important;
+    width: calc(50% - 6px) !important;
+  }
+  .autosave {
+    order: 5 !important;
+    width: calc(50% - 6px) !important;
+  }
+  .characters-layout {
+    display: flex !important;
+    flex-direction: column-reverse !important;
+  }
+  .selected-pal {
+    display: none !important;
+  }
+  .character-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 11px !important;
+  }
+  .character-card {
+    min-height: 177px !important;
+    padding: 29px 8px 15px !important;
+  }
+  .character-card.selected {
+    padding: 28px 7px 14px !important;
+  }
+  .character-card > svg {
+    width: 80px !important;
+    height: 80px !important;
+  }
+  .character-card > strong {
+    font-size: 14px !important;
+  }
+  .character-card > span:last-child {
+    font-size: 9px !important;
+  }
+  .section-intro {
+    padding: 15px 5px 28px !important;
+  }
+  .section-intro .eyebrow {
+    font-size: 7px !important;
+    letter-spacing: 1.3px !important;
+    line-height: 1.6 !important;
+  }
+  .section-intro h1 {
+    font-size: 34px !important;
+    line-height: 1.12 !important;
+    margin: 15px 0 !important;
+  }
+  .section-intro > p {
+    font-size: 12px !important;
+    max-width: 360px !important;
+    margin: auto !important;
+  }
+  .collection-note {
+    font-size: 10px !important;
+    line-height: 1.5 !important;
+    text-align: center !important;
+  }
+  .leaderboard-layout {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .leaderboard-main {
+    width: 100% !important;
+  }
+  .leaderboard-hero {
+    height: 249px !important;
+  }
+  .leaderboard-hero h1 {
+    font-size: 34px !important;
+  }
+  .leaderboard-hero > div {
+    padding: 25px !important;
+  }
+  .leaderboard-hero .eyebrow {
+    font-size: 8px !important;
+  }
+  .leaderboard-hero img {
+    right: -17% !important;
+    width: 128% !important;
+    object-position: 70% !important;
+  }
+  .leaderboard-hero:after {
+    background: linear-gradient(90deg, #fffcf5e6, #fffcf540 90%) !important;
+  }
+  .leaderboard-sidebar {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+  .your-rank-main {
+    justify-content: center !important;
+  }
+  .your-rank-card {
+    padding: 23px !important;
+  }
+  .your-rank-main > svg {
+    width: 90px !important;
+    height: 90px !important;
+  }
+  .your-rank-main strong {
+    font-size: 30px !important;
+  }
+  .your-stats {
+    padding: 16px 5px !important;
+  }
+  .leaf-quote {
+    padding: 24px 30px !important;
+  }
+  .ranking-explainer {
+    padding: 25px !important;
+  }
+  .ranking-empty {
+    padding: 37px 15px 43px !important;
+  }
+  .ranking-empty h2 {
+    font-size: 24px !important;
+  }
+  .ranking-empty p {
+    font-size: 11px !important;
+  }
+  .ranking-footnote {
+    font-size: 8px !important;
+  }
+  .ranking-table-panel th {
+    font-size: 8px !important;
+  }
+  .ranking-table-panel td {
+    font-size: 10px !important;
+  }
+  .ranking-player strong {
+    font-size: 10px !important;
+  }
+  .ranking-player small {
+    display: none !important;
+  }
+  .ranking-player > svg {
+    width: 30px !important;
+    height: 30px !important;
+  }
+  .how-steps {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+  .how-step {
+    padding: 24px !important;
+  }
+  .how-step h2 {
+    font-size: 28px !important;
+  }
+  .how-step p {
+    font-size: 13px !important;
+  }
+  .lesson-board {
+    height: 165px !important;
+    margin: 16px 0 23px !important;
+  }
+  .lesson-row {
+    gap: 6px !important;
+  }
+  .lesson-row > svg,
+  .lesson-row > span {
+    width: 62px !important;
+    height: 62px !important;
+  }
+  .how-bottom {
+    align-items: stretch !important;
+    flex-direction: column !important;
+    padding: 23px !important;
+  }
+  .how-bottom h3 {
+    font-size: 13px !important;
+  }
+  .how-bottom p {
+    font-size: 11px !important;
+  }
+  .how-bottom .button {
+    width: 100% !important;
+    padding: 15px !important;
+  }
+  .how-access {
+    flex-direction: column !important;
+    gap: 13px !important;
+    padding: 0 8px !important;
+  }
+  .modal-inner {
+    padding: 30px 24px !important;
+  }
+  .modal h2 {
+    font-size: 25px !important;
+  }
+  .modal-buttons .button {
+    font-size: 11px !important;
+    padding: 12px 10px !important;
+  }
+  .toast {
+    font-size: 11px !important;
+    padding: 13px 17px !important;
+    bottom: 20px !important;
+  }
+}
+@media (max-width: 380px) {
+  .app-shell {
+    padding: 0 12px !important;
+  }
+  .wordmark {
+    font-size: 19px !important;
+  }
+  .site-header nav button {
+    font-size: 10px !important;
+    padding: 9px 8px !important;
+    gap: 4px !important;
+  }
+  .profile-button > svg {
+    width: 30px !important;
+    height: 30px !important;
+  }
+  .hero-content {
+    padding-left: 21px !important;
+    padding-right: 21px !important;
+  }
+  .hero-buttons {
+    gap: 8px !important;
+  }
+  .hero-buttons .button {
+    padding: 13px 12px !important;
+    font-size: 12px !important;
+  }
+  .hero h1 {
+    font-size: 71px !important;
+  }
+  .character-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .site-footer > div {
+    font-size: 7px !important;
+  }
+  .lesson-row {
+    gap: 3px !important;
+  }
+  .lesson-row > svg,
+  .lesson-row > span {
+    width: 55px !important;
+    height: 55px !important;
+  }
+}

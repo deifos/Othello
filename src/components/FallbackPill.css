@@ -1,0 +1,79 @@
+.fallback-pill {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  perspective: 500px;
+  pointer-events: none;
+}
+
+.fallback-pill__hop,
+.fallback-pill__body {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 55%;
+  transform-style: preserve-3d;
+}
+
+.fallback-pill__hop {
+  transform-origin: 50% 89%;
+}
+
+.fallback-pill__side {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.fallback-pill__side--back {
+  transform: rotateY(180deg);
+}
+
+.fallback-pill__side [data-pill-shadow] {
+  opacity: 0;
+}
+
+.fallback-pill__shadow {
+  position: absolute;
+  left: 12%;
+  top: 81%;
+  width: 78%;
+  height: 17%;
+  opacity: 0.8;
+  background: radial-gradient(ellipse, #454b3066, #454b3000 72%);
+  transform-origin: center;
+}
+
+.fallback-pill__particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.fallback-pill__particle {
+  position: absolute;
+  left: 44%;
+  top: 45%;
+  width: 13%;
+  height: 13%;
+  opacity: 0;
+  transform-origin: center;
+}
+
+.fallback-pill__particle svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fallback-pill__particles {
+    display: none;
+  }
+}
+
+html[data-motion="reduced"] .fallback-pill__particles {
+  display: none;
+}

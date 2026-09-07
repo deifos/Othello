@@ -1,0 +1,47 @@
+button.result-portrait {
+  position: relative;
+  display: block;
+  width: 78px;
+  height: 78px;
+  flex: 0 0 auto;
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  transition: none;
+  touch-action: manipulation;
+}
+
+button.result-portrait:not(:disabled):active {
+  transform: none;
+}
+
+.result-portrait > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.result-portrait > .result-portrait__effects {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.result-portrait__particle {
+  opacity: 0;
+  transform-box: view-box;
+  transform-origin: 0 0;
+}
+
+html[data-motion="reduced"] .result-portrait__effects {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .result-portrait > .result-portrait__effects {
+    display: none;
+  }
+}
