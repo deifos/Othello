@@ -765,12 +765,8 @@ function GameView({
           Back to the garden
         </button>
         <div>
-          <span className="mode-tag">
-            <span className="status-dot" />
-            YOU VS. CPU
-          </span>
           <button
-            className="text-link muted"
+            className="text-link surrender-action"
             onClick={onSurrender}
             disabled={state.finished}
           >
@@ -789,6 +785,7 @@ function GameView({
                 <p>Small moves. Beautiful possibilities.</p>
               </div>
             </div>
+            <span className="mode-tag board-mode-tag">YOU VS. CPU</span>
             <span className="level-badge">
               {difficultyLabels[state.difficulty]}
             </span>

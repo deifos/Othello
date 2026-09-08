@@ -4,6 +4,44 @@
   display: flex;
   flex-direction: column;
 }
+.surrender-action:not(:disabled) {
+  color: #923e2b !important;
+  background: #fff0e8 !important;
+  border: 1px solid #cf8d73;
+  border-radius: 9px;
+  padding: 10px 13px;
+  font-weight: 800;
+}
+.surrender-action:not(:disabled) svg { stroke-width: 2.3; fill: #d67e5226; }
+.surrender-action:not(:disabled):hover { background: #ffe1d2 !important; }
+[data-theme="dark"] .surrender-action:not(:disabled) { color: #ffd2ba !important; background: #50342c !important; }
+.board-mode-tag { color: var(--green); text-align: center; white-space: nowrap; margin-inline: 12px; }
+@media (min-width: 1000px) and (max-height: 1100px) {
+  .app-shell:has(.game-layout) > .site-header { min-height: 76px !important; margin-bottom: 12px; }
+  .game-page { max-width: min(1120px, calc(100dvh + 40px)); padding-bottom: 16px; }
+  .game-page .page-topline { margin-bottom: 12px; }
+  .game-page .game-layout { grid-template-columns: minmax(0, 1fr) 282px !important; gap: 18px !important; }
+  .game-page .board-panel { padding: 16px 18px 14px 12px !important; }
+  .game-page .board-heading { padding-bottom: 10px; gap: 6px; flex-wrap: wrap; }
+  .game-page .board-heading h1 { font-size: 21px; }
+  .game-page .board-heading p { font-size: 10px; }
+  .game-page .board-heading-title { gap: 8px; }
+  .game-page .board-mode-tag { font-size: 9px; margin-inline: 0; letter-spacing: .6px; }
+  .game-page .board-tip { min-height: 40px; padding: 8px 10px !important; margin-top: 10px !important; }
+  .game-page .game-sidebar { gap: 8px !important; }
+  .game-page .turn-card { min-height: 0; padding: 12px 15px !important; }
+  .game-page .turn-card p { margin-top: 4px; }
+  .game-page .player-card { padding: 10px 15px !important; gap: 6px 12px !important; }
+  .game-page .player-card > .result-portrait { width: 58px; height: 58px; }
+  .game-page .player-turn-status { margin-top: 0; }
+  .game-page .winning-slot { margin-top: 0; }
+  .game-page .match-stats { padding: 10px; }
+  .game-page .change-pal { padding-block: 6px; }
+}
+@media (max-width: 740px) {
+  .board-heading:has(.board-mode-tag) { flex-wrap: wrap; gap: 8px; }
+  .board-mode-tag { font-size: 9px; margin-inline: 0; }
+}
 .app-shell > main {
   flex: 1 0 auto;
   min-width: 0;
