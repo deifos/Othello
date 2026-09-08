@@ -87,7 +87,7 @@ function practiceOnly(body: Record<string, unknown>) {
   const match = object(body.match);
   // The online room has its own authority. It never submits to this practice API.
   for (const value of [body, match]) {
-    if ((value.mode !== undefined && value.mode !== "cpu" && value.mode !== "practice") ||
+    if ((value.mode !== undefined && value.mode !== "cpu" && value.mode !== "practice" && value.mode !== "classic") ||
         ["roomCode", "roomId", "players", "playerColor"].some((key) => key in value)) {
       throw new HttpError(400, "Only CPU practice matches belong in these rankings.");
     }

@@ -16,15 +16,18 @@ The source code and original game artwork and music use the [MIT license](LICENS
 
 ## Features
 
+- **Two game modes:** Classic Othello or Enhanced with earned Undo, Shield,
+  Corner Claim, and a six-pill Flip-pocalypse celebration. Both CPU games and
+  friend rooms offer the same mode choice.
 - **CPU play:** Three difficulty levels, legal-move hints, undo, surrender,
   rematch, and a saved match. CPU search runs in a browser worker.
-- **Friend matches:** Private room codes and invite links, ready checks,
+- **Friend matches:** Private room codes and invite links, a host-selected mode, ready checks,
   reconnect support, and rematches that swap colors. The server checks each move.
 - **Complete rules:** Eight capture directions, automatic passes, and correct
   game endings, including a game that ends before the board is full.
 - **Ten pill styles:** Animated faces, capture flips, small jumps, and result
   celebrations. Each friend keeps their chosen style.
-- **Practice rankings:** All-time, seven-day, and thirty-day results. The server
+- **Practice rankings:** Classic CPU all-time, seven-day, and thirty-day results. The server
   checks submitted move records. Failed uploads retry when the service returns.
 - **Sound and music:** Two sound styles, five original songs, separate mute and
   volume controls, and no playback before user input.
@@ -58,17 +61,23 @@ respective services.
 
 ## How to play
 
-1. Choose **Play Now** for CPU play, or **Play with Friends** to create a room.
-2. In a friend room, share the invite link or room code. Both players choose
-   **I'm ready**. Use separate browser profiles to test two players on one device.
+1. Choose **Play Now** for CPU play, then select Classic or Enhanced and the CPU
+   difficulty. For a friend match, choose **Play with Friends**, select a mode,
+   and create a room.
+2. In a friend room, share the invite link or room code. Both players read the
+   selected rules and choose **I'm ready**. Changing the mode clears both Ready
+   choices. Use separate browser profiles to test two players on one device.
 3. Select a glowing tile, then choose **Place pill**. A move must trap one or more
    opponent pieces between the new piece and another piece of your color.
 4. Black moves first. If a player has no legal move, their turn passes. When
    neither player can move, the player with the most pieces wins.
 
 Use the arrow keys to move across the board. Enter or Space selects a tile.
-CPU undo returns to the position before your last move and the CPU reply.
-Undo is not available in friend matches.
+Classic CPU practice keeps its free Undo; Classic friend matches have none.
+Enhanced Undo uses an earned token to reverse your previous turn and all
+replies. Ready in an Enhanced friend room is agreement to this ability, so
+using it does not require a second approval. See the [mode and ability guide](docs/enhanced.md)
+for rewards, shields, corner claims, and the exact Undo rules.
 
 ## Commands
 
@@ -122,7 +131,8 @@ Values that start with `VITE_` are visible to visitors. Never put secrets in the
   results. Clearing browser data does not remove results already sent to it.
 - Friend rooms use saved server state. A disconnected player has 60 seconds to
   return. See [room behavior](docs/multiplayer.md) for expiry and rematch rules.
-- Friend matches are unranked. Practice rankings check legal moves, but cannot
+- Friend matches are unranked in both modes. Enhanced CPU results stay on the
+  device and do not enter Classic practice rankings. Practice rankings check legal moves, but cannot
   prove who selected them. There is no account sign-in, random matchmaking,
   friend list, or competitive rating system.
 - The hosted practice store is for a small public game: at most 5,000

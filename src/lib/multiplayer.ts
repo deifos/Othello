@@ -1,5 +1,6 @@
 import PartySocket, { type PartySocketOptions } from "partysocket";
 import { isBoard, type Player } from "../game/engine";
+import { isRulesView, type Ability, type GameMode } from "../game/enhanced";
 import {
   PROTOCOL_VERSION, ROOM_CODE_PATTERN,
   type ClientCommand, type MatchPlayer, type MatchSnapshot,
@@ -102,6 +103,7 @@ function validPlayer(value: unknown): value is MatchPlayer {
 export function isMatchSnapshot(value: unknown): value is MatchSnapshot {
   if (!object(value) || typeof value.roomCode !== 'string' || !ROOM_CODE_PATTERN.test(value.roomCode) ||
     typeof value.matchId !== 'string' || !value.matchId || value.matchId.length > 100 || !integer(value.revision) ||
+    !['classic', 'enhanced'].includes(value.mode as string) || !isRulesView(value.rules) || value.rules.mode !== value.mode ||
     !isBoard(value.board) || !(value.turn === null || player(value.turn)) ||
     !Array.isArray(value.players) || value.players.length > 2 || !value.players.every(validPlayer) ||
     new Set(value.players.map(p => p.id)).size !== value.players.length ||
@@ -109,6 +111,9 @@ export function isMatchSnapshot(value: unknown): value is MatchSnapshot {
     !['waiting', 'playing', 'finished'].includes(value.phase as string) ||
     !(value.passed === null || player(value.passed)) || !integer(value.moveCount, 0, 60) ||
     !timestamp(value.startedAt) || !timestamp(value.endedAt) || !integer(value.updatedAt) || !integer(value.serverTime)) return false;
+  if (!(value.hostId === null && value.players.length === 0) && !value.players.some(p => p.id === value.hostId)) return false;
+  const board = value.board;
+  if (value.rules.turn !== value.turn || value.rules.moveCount !== value.moveCount || value.rules.board.some((cell, index) => cell !== board[index])) return false;
   if (value.lastMove !== null && (!object(value.lastMove) || !integer(value.lastMove.index, 0, 63) ||
     !player(value.lastMove.player) || !Array.isArray(value.lastMove.flips) ||
     !value.lastMove.flips.every(index => integer(index, 0, 63)) ||
@@ -132,6 +137,8 @@ const rejectionMessages: Record<RejectionCode, string> = {
   'room-exists': 'That room code is already in use. Please create another room.',
   'opponent-offline': 'Your friend is reconnecting. Play resumes when they return.',
   'rate-limited': 'Please wait a moment before you try again.',
+  'not-host': 'The room host chooses Classic or Enhanced before the match starts.',
+  'invalid-ability': 'Use an earned ability at the start of your turn and choose a valid target.',
 };
 export function parseServerMessage(data: unknown): ServerMessage | null {
   if (typeof data !== 'string' || data.length > 30_000) return null;
@@ -169,6 +176,7 @@ export class MultiplayerClient {
   private detach: (() => void) | null = null;
   private welcomed = false;
   private createIntent = false;
+  private createMode: GameMode = 'classic';
   private createAttempts = 0;
   private joinRequest = '';
   private seenMatches = new Set<string>();
@@ -264,7 +272,8 @@ export class MultiplayerClient {
       try {
         if (socket.readyState !== 1) return;
         socket.send(JSON.stringify({ version: PROTOCOL_VERSION, type: 'join', requestId: this.joinRequest,
-          token: this.seatToken(), name: this.profile.name, styleId: this.profile.styleId, create: this.createIntent }));
+          token: this.seatToken(), name: this.profile.name, styleId: this.profile.styleId, create: this.createIntent,
+          ...(this.createIntent ? { mode: this.createMode } : {}) }));
       } catch { this.fail('The room could not be joined. Select Try again.'); }
     };
     const message: EventListener = event => {
@@ -357,12 +366,12 @@ export class MultiplayerClient {
     this.update({ error: text });
     if (message.code === 'stale-revision') this.sendCommand('sync');
   }
-  private sendCommand(type: ClientCommand['type'], index?: number, heartbeat = false): void {
+  private sendCommand(type: ClientCommand['type'], payload?: number | { mode: GameMode } | { ability: Ability; target?: number }, heartbeat = false): void {
     const snapshot = this.state.snapshot;
     if (!snapshot || !this.welcomed || this.state.status !== 'connected' || this.pendingRequest || !this.socket || this.socket.readyState !== 1) return;
     const requestId = randomHex(12);
     const command = { version: PROTOCOL_VERSION, type, requestId, matchId: snapshot.matchId, expectedRevision: snapshot.revision,
-      ...(type === 'move' ? { index } : {}) };
+      ...(type === 'move' ? { index: payload } : typeof payload === 'object' ? payload : {}) };
     this.pendingRequest = { id: requestId, type, heartbeat };
     this.update({ pending: true });
     try {
@@ -385,10 +394,12 @@ export class MultiplayerClient {
       this.sendCommand('sync');
     }, REQUEST_TIMEOUT);
   }
-  createRoom = (): void => {
+  createRoom = (mode: GameMode = 'classic'): void => {
+    if (mode !== 'classic' && mode !== 'enhanced') return;
     if (this.state.roomCode && (this.state.status === 'connected' || this.state.status === 'connecting' || this.state.status === 'reconnecting')) return;
     this.closeSocket();
     this.createIntent = true;
+    this.createMode = mode;
     this.createAttempts = 0;
     this.seenMatches.clear();
     this.update({ ...initialState, roomCode: createCode() });
@@ -409,6 +420,20 @@ export class MultiplayerClient {
     this.connect();
   };
   ready = (): void => { this.sendCommand('ready'); };
+  setMode = (mode: GameMode): void => {
+    const snapshot = this.state.snapshot;
+    if ((mode === 'classic' || mode === 'enhanced') && snapshot?.phase === 'waiting' && snapshot.hostId === this.state.playerId && snapshot.mode !== mode) this.sendCommand('set-mode', { mode });
+  };
+  useAbility = (ability: Ability, target?: number): void => {
+    const snapshot = this.state.snapshot;
+    const own = snapshot?.players.find(p => p.id === this.state.playerId);
+    if (!snapshot || snapshot.phase !== 'playing' || snapshot.mode !== 'enhanced' || !own || snapshot.turn !== own.color ||
+      !snapshot.players.every(p => p.connected) || !['undo', 'shield', 'corner'].includes(ability) || snapshot.rules.abilityUsed || !snapshot.rules.tokens[own.color][ability]) return;
+    if (ability === 'undo' ? !snapshot.rules.canUndo[own.color] || target !== undefined : !integer(target, 0, 63)) return;
+    if (ability === 'shield' && snapshot.board[target!] !== own.color) return;
+    if (ability === 'corner' && (![0, 7, 56, 63].includes(target!) || snapshot.board[target!] !== 0)) return;
+    this.sendCommand('ability', { ability, ...(target !== undefined ? { target } : {}) });
+  };
   move = (index: number): void => { if (integer(index, 0, 63)) this.sendCommand('move', index); };
   surrender = (): void => { this.sendCommand('surrender'); };
   rematch = (): void => { this.sendCommand('rematch'); };

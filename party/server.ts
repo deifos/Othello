@@ -1,6 +1,7 @@
 import type * as Party from "partykit/server";
-import { applyMove, createBoard, getFlips, getNextTurn, getScore, opponent } from "../src/game/engine";
-import type { Player } from "../src/game/engine";
+import { getScore, opponent } from "../src/game/engine";
+import type { Board, Player } from "../src/game/engine";
+import { createRulesGame, getRulesLegalMoves, isRulesGame, playRulesMove, projectRulesGame, useRulesAbility, type RulesGame } from "../src/game/enhanced";
 import { PROTOCOL_VERSION, RECONNECT_GRACE_MS, ROOM_CODE_PATTERN } from "../src/game/protocol";
 import type { ClientCommand, JoinCommand, MatchSnapshot, RejectionCode, ServerMessage } from "../src/game/protocol";
 import { CHARACTER_STYLES } from "../src/styles/characters";
@@ -14,17 +15,25 @@ const PLAYING_TTL_MS = 2 * 60 * 60_000;
 const FINISHED_TTL_MS = 30 * 60_000;
 const MAX_CONNECTIONS = 12;
 const MAX_SEAT_CONNECTIONS = 4;
-const MAX_ACCEPTED_REQUESTS = 256;
+// Evicted requests still fail their old revision or match ID. This is only a
+// receipt cache, never the authority for whether a move can be applied again.
+export const MAX_ACCEPTED_REQUESTS = 128;
 const STYLES = new Set(CHARACTER_STYLES.map((style) => style.id));
 
 interface StoredMatch {
-  schema: 2;
+  schema: 3;
   snapshot: MatchSnapshot;
+  game: RulesGame;
   /** Hashes and command receipts are never sent to a client. */
   tokenHashes: Record<string, string>;
   accepted: { playerId: string; matchId: string; requestId: string }[];
   expiresAt: number;
 }
+
+type LegacyMatch = Omit<StoredMatch, "schema" | "game" | "snapshot"> & {
+  schema: 2;
+  snapshot: Omit<MatchSnapshot, "mode" | "rules" | "hostId">;
+};
 
 interface Session {
   connection: RoomConnection;
@@ -48,20 +57,26 @@ function hasOnly(value: Record<string, unknown>, keys: string[]) {
 }
 
 function validJoin(value: Record<string, unknown>): value is Record<string, unknown> & JoinCommand {
-  return hasOnly(value, ["version", "type", "requestId", "token", "name", "styleId", "create"])
+  return hasOnly(value, ["version", "type", "requestId", "token", "name", "styleId", "create", "mode"])
     && typeof value.token === "string" && /^[a-f0-9]{64}$/i.test(value.token)
     && typeof value.name === "string" && value.name.trim().length > 0 && Array.from(value.name).length <= 24
     && !/[\u0000-\u001f\u007f]/.test(value.name)
     && typeof value.styleId === "string" && STYLES.has(value.styleId)
-    && typeof value.create === "boolean";
+    && typeof value.create === "boolean"
+    && (value.mode === undefined || value.mode === "classic" || value.mode === "enhanced");
 }
 
 function validCommand(value: Record<string, unknown>): value is Record<string, unknown> & ClientCommand {
-  return ["move", "ready", "surrender", "rematch", "leave", "sync"].includes(String(value.type))
-    && hasOnly(value, ["version", "type", "requestId", "matchId", "expectedRevision", ...(value.type === "move" ? ["index"] : [])])
+  return ["move", "ready", "surrender", "rematch", "leave", "sync", "set-mode", "ability"].includes(String(value.type))
+    && hasOnly(value, ["version", "type", "requestId", "matchId", "expectedRevision", ...(value.type === "move" ? ["index"] : value.type === "set-mode" ? ["mode"] : value.type === "ability" ? ["ability", "target"] : [])])
     && typeof value.matchId === "string" && value.matchId.length > 0 && value.matchId.length <= 80
     && Number.isSafeInteger(value.expectedRevision) && Number(value.expectedRevision) >= 0
-    && (value.type !== "move" || (Number.isInteger(value.index) && Number(value.index) >= 0 && Number(value.index) < 64));
+    && (value.type !== "move" || (Number.isInteger(value.index) && Number(value.index) >= 0 && Number(value.index) < 64))
+    && (value.type !== "set-mode" || value.mode === "classic" || value.mode === "enhanced")
+    && (value.type !== "ability" || (
+      ["undo", "shield", "corner"].includes(String(value.ability))
+      && (value.ability === "undo" ? value.target === undefined : Number.isInteger(value.target) && Number(value.target) >= 0 && Number(value.target) < 64)
+    ));
 }
 
 async function hashToken(token: string) {
@@ -115,10 +130,19 @@ export default class OthelloRoom implements Party.Server {
 
   onStart() {
     return this.serial(async () => {
-      this.record = await this.room.storage.get<StoredMatch>(STORAGE_KEY) ?? null;
+      const stored = await this.room.storage.get<StoredMatch | LegacyMatch>(STORAGE_KEY);
+      let migrated = false;
+      if (stored?.schema === 2) {
+        const game = createRulesGame("classic", { board: stored.snapshot.board as Board, turn: stored.snapshot.phase === "waiting" ? 1 : stored.snapshot.turn, moveCount: stored.snapshot.moveCount, lastMove: stored.snapshot.lastMove, passed: stored.snapshot.passed });
+        this.record = { ...stored, schema: 3, game, snapshot: { ...stored.snapshot, mode: "classic", hostId: stored.snapshot.players[0]?.id ?? null, rules: projectRulesGame(game) } };
+        migrated = true;
+      } else {
+        if (stored && (stored.schema !== 3 || !isRulesGame(stored.game))) throw new Error("Stored room rules are not supported.");
+        this.record = stored ?? null;
+      }
       if (this.record) {
         const next = structuredClone(this.record);
-        let changed = false;
+        let changed = migrated;
         for (const player of next.snapshot.players) {
           if (player.connected) {
             player.connected = false;
@@ -276,6 +300,10 @@ export default class OthelloRoom implements Party.Server {
   }
 
   private async save(next: StoredMatch) {
+    next.snapshot.mode = next.game.mode;
+    next.snapshot.rules = { ...projectRulesGame(next.game), turn: next.snapshot.turn, passed: next.snapshot.passed,
+      ...(next.snapshot.phase !== "playing" ? { canUndo: { 1: false, 2: false } } : {}) };
+    if (!next.snapshot.players.some(player => player.id === next.snapshot.hostId)) next.snapshot.hostId = next.snapshot.players[0]?.id ?? null;
     // Assign only after persistence. A failed write cannot publish an uncommitted move.
     await this.room.storage.put(STORAGE_KEY, next);
     this.record = next;
@@ -287,6 +315,16 @@ export default class OthelloRoom implements Party.Server {
       snapshot.phase = "playing";
       snapshot.turn = 1;
       snapshot.startedAt = Date.now();
+    }
+  }
+
+  private applyRules(next: StoredMatch, game: RulesGame) {
+    next.game = game;
+    const { board, turn, lastMove, passed, moveCount } = game;
+    Object.assign(next.snapshot, { board, turn, lastMove, passed, moveCount });
+    if (turn === null) {
+      const score = getScore(board);
+      this.finish(next, score.black === score.white ? null : score.black > score.white ? 1 : 2, "complete");
     }
   }
 
@@ -314,10 +352,12 @@ export default class OthelloRoom implements Party.Server {
       return;
     }
     const now = Date.now();
+    const game = createRulesGame(command.mode ?? "classic");
     const next: StoredMatch = this.record ? structuredClone(this.record) : {
-      schema: 2,
+      schema: 3, game,
       snapshot: {
-        roomCode: this.room.id, matchId: crypto.randomUUID(), revision: 0, board: createBoard(), turn: null,
+        roomCode: this.room.id, matchId: crypto.randomUUID(), revision: 0, board: game.board, turn: null,
+        mode: game.mode, hostId: null, rules: projectRulesGame(game),
         players: [], phase: "waiting", result: null, lastMove: null, passed: null, moveCount: 0,
         startedAt: null, endedAt: null, updatedAt: now, serverTime: now,
       },
@@ -365,7 +405,7 @@ export default class OthelloRoom implements Party.Server {
     const snapshot = next.snapshot;
     const own = snapshot.players.find((item) => item.id === player.id)!;
     const bothConnected = snapshot.players.length === 2 && snapshot.players.every((item) => item.connected);
-    if (command.type === "move") {
+    if (command.type === "move" || command.type === "ability") {
       if (snapshot.phase !== "playing") {
         this.reject(session, command.requestId, "not-playing", "The match has not started, or it has ended."); return;
       }
@@ -375,17 +415,29 @@ export default class OthelloRoom implements Party.Server {
       if (snapshot.turn !== own.color) {
         this.reject(session, command.requestId, "not-your-turn", "Wait for your turn."); return;
       }
-      const flips = getFlips(snapshot.board, command.index, own.color);
-      if (!flips.length) {
-        this.reject(session, command.requestId, "invalid-move", "Choose a highlighted tile."); return;
+      if (command.type === "move") {
+        if (!getRulesLegalMoves(next.game).some(move => move.index === command.index)) {
+          this.reject(session, command.requestId, "invalid-move", "Choose a highlighted tile."); return;
+        }
+        this.applyRules(next, playRulesMove(next.game, command.index));
+      } else {
+        let game: RulesGame;
+        try { game = useRulesAbility(next.game, command.ability, command.target); }
+        catch {
+          this.reject(session, command.requestId, "invalid-ability", "Use an earned ability at the start of your turn and choose a valid target."); return;
+        }
+        this.applyRules(next, game);
       }
-      snapshot.board = applyMove(snapshot.board, command.index, own.color);
-      Object.assign(snapshot, getNextTurn(snapshot.board, own.color));
-      snapshot.lastMove = { index: command.index, flips, player: own.color };
-      snapshot.moveCount++;
-      if (snapshot.turn === null) {
-        const score = getScore(snapshot.board);
-        this.finish(next, score.black === score.white ? null : score.black > score.white ? 1 : 2, "complete");
+    } else if (command.type === "set-mode") {
+      if (snapshot.phase !== "waiting") {
+        this.reject(session, command.requestId, "not-playing", "Choose the mode before the match starts."); return;
+      }
+      if (snapshot.hostId !== own.id) {
+        this.reject(session, command.requestId, "not-host", "The room host chooses the game mode."); return;
+      }
+      if (snapshot.mode !== command.mode) {
+        next.game = createRulesGame(command.mode);
+        for (const item of snapshot.players) item.ready = false;
       }
     } else if (command.type === "ready") {
       if (snapshot.phase !== "waiting") {
@@ -408,7 +460,8 @@ export default class OthelloRoom implements Party.Server {
       own.wantsRematch = true;
       if (snapshot.players.every((item) => item.wantsRematch)) {
         snapshot.matchId = crypto.randomUUID();
-        snapshot.board = createBoard();
+        next.game = createRulesGame(snapshot.mode);
+        snapshot.board = next.game.board;
         snapshot.phase = "playing";
         snapshot.turn = 1;
         snapshot.result = null;

@@ -1,10 +1,13 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import * as THREE from "three";
 import { playGameSound } from "../lib/gameAudio";
 import { getCharacterStyle } from "../styles/characters";
 import FallbackPill from "./FallbackPill";
 import type { FallbackPillChange, FallbackPillHandle } from "./FallbackPill";
 import { createBoardCelebration } from "../animation/boardCelebration";
+import { createFlippocalypse } from "../animation/flippocalypse";
+import { FLIPPOCALYPSE_MS, enhancedCaptureDelay, isFlippocalypseMove, sampleFlippocalypsePose } from "../animation/flippocalypseMotion";
+import "./GameBoard.css";
 import {
   captureDelay,
   FLIP_MS,
@@ -32,6 +35,10 @@ export type GameBoardProps = {
   reducedMotion?: boolean;
   preview?: boolean;
   onAnimatingChange?: (animating: boolean) => void;
+  mode?: "classic" | "enhanced";
+  effects?: { shield?: { index: number; owner: 1 | 2 } | null; corner?: { index: number; owner: 1 | 2 } | null } | { ability: "shield" | "corner"; index: number; owner: 1 | 2 }[];
+  targetMode?: "shield" | "corner" | null;
+  targetIndices?: number[];
 };
 
 type Pill = {
@@ -49,6 +56,7 @@ type Pill = {
   value: number;
   color: number;
   materials: THREE.Material[];
+  fierceBrows: THREE.Group;
 };
 type Motion = {
   index: number;
@@ -65,14 +73,23 @@ type BoardScene = {
   dispose: () => void;
 };
 
-const PIECE_Y = 0.34;
+const BODY_RADIUS = 0.369;
+const BODY_HEIGHT = 0.285;
+const PIECE_Y = BODY_HEIGHT + 0.108;
+const BODY_ROUGHNESS = 0.4;
 const BLACK = "#42463d";
 const WHITE = "#fffaf0";
 const pieceColors = [new THREE.Color(BLACK), new THREE.Color(WHITE)];
 const TILE_COLORS = ["#779852", "#75964f", "#789853", "#7b9b56"];
+const FIRE_CURLS = [
+  "M18 77C-1 50 20 13 49 13C81 13 98 43 81 64C70 79 50 69 58 53",
+  "M77 85C102 64 87 28 62 20C37 12 13 29 20 50C25 64 42 68 47 56",
+  "M12 39C22 6 65 1 87 29C109 62 69 96 46 80C31 69 38 56 50 60",
+];
 const cellName = (index: number) =>
   `${String.fromCharCode(65 + (index % 8))}${Math.floor(index / 8) + 1}`;
 const isDark = (value: number) => value === 1;
+const bodyGlow = (value: number) => isDark(value) ? 0.08 : 0.025;
 const playerStyleId = (props: GameBoardProps, value: number) =>
   getCharacterStyle(props.styleIds?.[value === 1 ? 1 : 2] ?? props.styleId).id;
 
@@ -98,6 +115,34 @@ function tileGeometry(): THREE.ExtrudeGeometry {
     curveSegments: 4,
     steps: 1,
   });
+}
+
+function pointedEarGeometries() {
+  // Match the left ear paths in PillAvatar. Mirroring the mesh makes the right
+  // ear; the shared geometry stays behind the curved head at its lower edge.
+  const x = (value: number) => (value - 50) * BODY_RADIUS / 39;
+  const y = (value: number) => (53.5 - value) * BODY_RADIUS / 38.5;
+  const outer = new THREE.Shape();
+  outer.moveTo(x(18), y(38));
+  outer.quadraticCurveTo(x(11), y(5), x(36), y(24));
+  outer.closePath();
+  const inner = new THREE.Shape();
+  inner.moveTo(x(20), y(29));
+  inner.lineTo(x(20), y(18));
+  inner.lineTo(x(30), y(25));
+  inner.closePath();
+  return {
+    outer: new THREE.ExtrudeGeometry(outer, {
+      depth: 0.028,
+      bevelEnabled: true,
+      bevelSize: 0.004,
+      bevelThickness: 0.004,
+      bevelSegments: 3,
+      curveSegments: 12,
+      steps: 1,
+    }),
+    inner: new THREE.ShapeGeometry(inner),
+  };
 }
 
 function makeBoardScene(
@@ -147,6 +192,7 @@ function makeBoardScene(
   const torusGeo = new THREE.TorusGeometry(0.277, 0.017, 6, 40);
   const smallTorusGeo = new THREE.TorusGeometry(0.141, 0.012, 6, 32);
   const coneGeo = new THREE.ConeGeometry(1, 1, 3);
+  const pointedEars = pointedEarGeometries();
   const permanentMaterials: THREE.Material[] = [];
   const material = (
     color: string,
@@ -210,6 +256,7 @@ function makeBoardScene(
   selectedRing.visible = false;
   scene.add(selectedRing);
   const celebration = createBoardCelebration(scene);
+  const flippocalypse = createFlippocalypse(scene);
   // Soft ground contact is stable at every screen size and needs no shadow pass.
   const shadowCanvas = document.createElement("canvas");
   shadowCanvas.width = shadowCanvas.height = 128;
@@ -222,8 +269,9 @@ function makeBoardScene(
     64,
     62,
   );
-  shadowGradient.addColorStop(0, "rgba(30,44,20,0.33)");
-  shadowGradient.addColorStop(0.48, "rgba(30,44,20,0.19)");
+  shadowGradient.addColorStop(0, "rgba(30,44,20,0.46)");
+  shadowGradient.addColorStop(0.42, "rgba(30,44,20,0.28)");
+  shadowGradient.addColorStop(0.76, "rgba(30,44,20,0.075)");
   shadowGradient.addColorStop(1, "rgba(30,44,20,0)");
   shadowContext.fillStyle = shadowGradient;
   shadowContext.fillRect(0, 0, 128, 128);
@@ -247,8 +295,8 @@ function makeBoardScene(
     positions.setXYZ(
       index,
       x,
-      0.232 * Math.sqrt(Math.max(0, 1 - (x / 0.369) ** 2 - (z / 0.369) ** 2)) +
-        0.006,
+      BODY_HEIGHT * Math.sqrt(Math.max(0, 1 - (x / BODY_RADIUS) ** 2 - (z / BODY_RADIUS) ** 2)) +
+        0.008,
       z,
     );
   }
@@ -264,6 +312,7 @@ function makeBoardScene(
   let currentProps: GameBoardProps | null = null;
   let expressionTimer: ReturnType<typeof setTimeout> | undefined;
   let visible = true;
+  let fury: { start: number; placedAt: number; captures: number[] } | null = null;
   const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
   const sceneSeed = crypto.getRandomValues(new Uint32Array(1))[0];
   const motionReduced = () =>
@@ -281,16 +330,16 @@ function makeBoardScene(
       const result = new THREE.MeshStandardMaterial({
         color,
         roughness,
-        metalness: 0.01,
+        metalness: 0,
       });
       materials.push(result);
       return result;
     };
-    const bodyMaterial = makeMaterial(isDark(value) ? BLACK : WHITE, 0.48);
+    const bodyMaterial = makeMaterial(isDark(value) ? BLACK : WHITE, BODY_ROUGHNESS);
     bodyMaterial.emissive.set(isDark(value) ? BLACK : WHITE);
-    bodyMaterial.emissiveIntensity = isDark(value) ? 0.55 : 0.65;
+    bodyMaterial.emissiveIntensity = bodyGlow(value);
     const body = new THREE.Mesh(sphereGeometry, bodyMaterial);
-    body.scale.set(0.369, 0.232, 0.369);
+    body.scale.set(BODY_RADIUS, BODY_HEIGHT, BODY_RADIUS);
     body.castShadow = true;
     body.receiveShadow = true;
     group.add(body);
@@ -315,18 +364,34 @@ function makeBoardScene(
     backFace.rotation.x = Math.PI;
     backFace.visible = false;
     group.add(backFace);
+    const fierceBrows = new THREE.Group();
+    const browMaterial = makeMaterial(isDark(value) ? "#f4dfbc" : "#493d31");
+    for (const side of [-1, 1]) {
+      const brow = new THREE.Mesh(smallSphereGeometry, browMaterial);
+      brow.scale.set(0.06, 0.013, 0.014);
+      brow.position.set(side * 0.108, BODY_HEIGHT, -0.091);
+      brow.rotation.y = side * 0.42;
+      fierceBrows.add(brow);
+    }
+    fierceBrows.visible = false;
+    group.add(fierceBrows);
     function makeAccessories(accessoryValue: 1 | 2) {
+      const accessoryRoot = new THREE.Group();
       const accessoryGroup = new THREE.Group();
+      // Raise all ornaments with the rounder surface, including rotated ears.
+      // The outer group remains free to squash during a flip.
+      accessoryGroup.scale.y = BODY_HEIGHT / 0.232;
+      accessoryRoot.add(accessoryGroup);
       const { accessory, accent } = getCharacterStyle(styleIds[accessoryValue]);
-      if (accessory === "none") return accessoryGroup;
+      if (accessory === "none") return accessoryRoot;
       const darkEye = makeMaterial("#242a23", 0.38);
       const sparkle = makeMaterial("#fffced", 0.28);
       const blush = makeMaterial("#ed9a85", 0.7);
       const accentMat = makeMaterial(accent);
       // Ear colors belong to this side, not the body material that blends during a flip.
-      const bodyMaterial = makeMaterial(isDark(accessoryValue) ? BLACK : WHITE, 0.48);
+      const bodyMaterial = makeMaterial(isDark(accessoryValue) ? BLACK : WHITE, BODY_ROUGHNESS);
       bodyMaterial.emissive.copy(bodyMaterial.color);
-      bodyMaterial.emissiveIntensity = isDark(accessoryValue) ? 0.55 : 0.65;
+      bodyMaterial.emissiveIntensity = bodyGlow(accessoryValue);
       function blob(
         x: number,
         y: number,
@@ -397,18 +462,22 @@ function makeBoardScene(
         }
       }
       if (accessory === "fox" || accessory === "cat") {
+        blush.color.set("#efb6a8");
         for (const side of [-1, 1]) {
           const ear = new THREE.Mesh(
-            coneGeo,
+            pointedEars.outer,
             accessory === "fox" ? accentMat : bodyMaterial,
           );
-          ear.scale.set(0.135, 0.22, 0.1);
+          ear.scale.x = side;
           ear.rotation.x = -Math.PI / 2;
-          ear.rotation.z = side * 0.18;
-          ear.position.set(side * 0.233, 0.07, -0.27);
+          ear.position.y = 0.012;
           ear.castShadow = true;
-          accessoryGroup.add(ear);
-          blob(side * 0.239, 0.141, -0.284, 0.037, 0.015, 0.05, blush);
+          const inner = new THREE.Mesh(pointedEars.inner, blush);
+          inner.scale.x = side;
+          inner.rotation.x = -Math.PI / 2;
+          // The inset follows the ear cap; it does not sit on the pill's face.
+          inner.position.y = 0.045;
+          accessoryGroup.add(ear, inner);
         }
       }
       if (accessory === "flower") {
@@ -438,7 +507,7 @@ function makeBoardScene(
         }
         blob(0, 0.127, -0.243, 0.184, 0.032, 0.037, accentMat);
       }
-      return accessoryGroup;
+      return accessoryRoot;
     }
     // Keep both player styles ready. Captures turn to the other side without
     // rebuilding meshes, materials, or the shared face texture during motion.
@@ -463,6 +532,7 @@ function makeBoardScene(
       value,
       color: value,
       materials,
+      fierceBrows,
     };
   }
 
@@ -478,7 +548,7 @@ function makeBoardScene(
     const bodyMaterial = pill.body.material as THREE.MeshStandardMaterial;
     bodyMaterial.color.set(isDark(value) ? BLACK : WHITE);
     bodyMaterial.emissive.set(isDark(value) ? BLACK : WHITE);
-    bodyMaterial.emissiveIntensity = isDark(value) ? 0.55 : 0.65;
+    bodyMaterial.emissiveIntensity = bodyGlow(value);
     pill.color = value;
   }
   function invalidate() {
@@ -571,8 +641,8 @@ function makeBoardScene(
           .lerp(pieceColors[motion.to - 1], mix);
         material.emissive.copy(material.color);
         material.emissiveIntensity = THREE.MathUtils.lerp(
-          isDark(motion.from) ? 0.55 : 0.65,
-          isDark(motion.to) ? 0.55 : 0.65,
+          bodyGlow(motion.from),
+          bodyGlow(motion.to),
           mix,
         );
       }
@@ -604,13 +674,45 @@ function makeBoardScene(
       pill.group.position.z = Math.floor(index / 8) - 3.5 + pose.depth * 2.2;
       pill.shadow.scale.setScalar(1 - pose.lift * 0.36);
     }
+    if (fury) {
+      const p = (now - fury.start) / FLIPPOCALYPSE_MS;
+      if (p >= 1 || motionReduced()) {
+        for (const index of [fury.placedAt, ...fury.captures]) {
+          const pill = pills.get(index);
+          if (pill) { settlePill(pill, index); setReaction(pill, "grin", 850, now); }
+        }
+        fury = null;
+      } else {
+        for (const index of [fury.placedAt, ...fury.captures]) {
+          const pill = pills.get(index);
+          if (!pill) continue;
+          const attacker = index === fury.placedAt;
+          const pose = sampleFlippocalypsePose(p, attacker);
+          if (attacker || !motions.some((motion) => motion.index === index && now >= motion.start)) {
+            pill.group.scale.setScalar(pose.scale);
+            if (attacker) {
+              const col = index % 8;
+              const row = Math.floor(index / 8);
+              const envelope = (pose.scale - 1) / 0.9;
+              pill.group.position.x = col - 3.5 + (col === 0 ? 0.24 : col === 7 ? -0.24 : 0) * envelope;
+              if (row === 0 || row === 7) pill.group.scale.setScalar(Math.min(pose.scale, 1.5));
+            }
+            pill.group.position.y = PIECE_Y + pose.lift;
+            pill.group.position.z = Math.max(-3.4, Math.min(3.4, Math.floor(index / 8) - 3.5 + pose.depth));
+          }
+          pill.fierceBrows.visible = attacker && p < 0.58;
+        }
+      }
+    }
     const celebrating = celebration.update(now);
+    const blazing = flippocalypse.update(now);
     host.dataset.motion = motions.length ? "moving" : "idle";
     host.dataset.hops = String(hops.size);
     host.dataset.particles = String(celebration.count());
+    host.dataset.flippocalypse = fury ? "active" : "idle";
     for (const pill of pills.values()) updateFace(pill, now);
     renderer.render(scene, camera);
-    if (motions.length || hops.size || celebrating) invalidate();
+    if (motions.length || hops.size || celebrating || blazing || fury) invalidate();
     else scheduleExpressions(now);
   }
   function settlePill(pill: Pill, index: number) {
@@ -632,6 +734,7 @@ function makeBoardScene(
     pill.backAccessories.visible = false;
     pill.frontAccessories.scale.y = 1;
     pill.backAccessories.scale.y = 1;
+    pill.fierceBrows.visible = false;
     changeColor(pill, pill.value);
   }
   function stopHops() {
@@ -647,7 +750,7 @@ function makeBoardScene(
     if (
       !pill || stopped || paused() || motionReduced() ||
       hops.has(index) || hops.size >= 4 ||
-      motions.some((motion) => motion.index === index)
+      motions.some((motion) => motion.index === index) || fury
     ) return;
     const now = performance.now();
     hops.set(index, now);
@@ -674,9 +777,12 @@ function makeBoardScene(
     );
     const isMove = !first && !styleChanged && !removed && added.length === 1;
     const captures = props.board.map((value, index) => value && pills.has(index) && pills.get(index)!.value !== value ? index : -1).filter(index => index >= 0);
+    const intense = isMove && props.mode === "enhanced" && captures.length >= 6 && !reduced && !paused();
     const now = performance.now();
     if (styleChanged || reduced || boardChanged) {
       motions = [];
+      fury = null;
+      flippocalypse.clear();
       if (styleChanged || reduced || !isMove) celebration.clear();
       if (styleChanged)
         for (const index of [...pills.keys()]) removePill(index);
@@ -703,7 +809,7 @@ function makeBoardScene(
         pills.set(index, pill);
         scene.add(pill.group, pill.shadow);
         if (isMove && !reduced) {
-          setReaction(pill, "grin", 1000, now);
+          setReaction(pill, intense ? "happy" : "grin", 1000, now);
           celebration.burst(index, now + PLACEMENT_MS * 0.32, "place");
           motions.push({
             index,
@@ -720,8 +826,8 @@ function makeBoardScene(
         motions = motions.filter((motion) => motion.index !== index);
         if (reduced || !isMove) settlePill(pill, index);
         else {
-          const start = now + captureDelay(index, added[0], captures);
-          setReaction(pill, "sad", start - now + FLIP_MS, now);
+          const start = now + (intense ? enhancedCaptureDelay(index, added[0], captures) : captureDelay(index, added[0], captures));
+          setReaction(pill, intense ? "surprised" : "sad", start - now + FLIP_MS, now);
           motions.push({
             index,
             start,
@@ -734,9 +840,14 @@ function makeBoardScene(
         }
       }
       markers[index].visible =
-        props.legalMoves.includes(index) && !value && !props.disabled;
+        !props.targetMode && props.legalMoves.includes(index) && !value && !props.disabled;
+    }
+    if (intense) {
+      fury = { start: now, placedAt: added[0], captures };
+      flippocalypse.start(added[0], captures, now);
     }
     selectedRing.visible =
+      !props.targetMode &&
       props.selected !== null &&
       props.legalMoves.includes(props.selected) &&
       !props.disabled;
@@ -783,6 +894,13 @@ function makeBoardScene(
   const refreshVisibility = () => {
     if (paused()) {
       stopHops();
+      flippocalypse.clear();
+      if (fury) {
+        for (const [index, pill] of pills) settlePill(pill, index);
+        motions = []; fury = null;
+        host.dataset.flippocalypse = "idle";
+        host.dataset.motion = "idle";
+      }
       cancelAnimationFrame(raf);
       raf = 0;
       clearTimeout(expressionTimer);
@@ -826,6 +944,7 @@ function makeBoardScene(
       permanentMaterials.forEach((mat) => mat.dispose());
       faces.dispose();
       celebration.dispose();
+      flippocalypse.dispose();
       shadowTexture.dispose();
       [
         sphereGeometry,
@@ -834,6 +953,8 @@ function makeBoardScene(
         torusGeo,
         smallTorusGeo,
         coneGeo,
+        pointedEars.outer,
+        pointedEars.inner,
         baseGeo,
         faceGeometry,
         shadowGeometry,
@@ -845,6 +966,7 @@ function makeBoardScene(
 }
 
 export default function GameBoard(props: GameBoardProps) {
+  const fireId = useId();
   const canvasHost = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<BoardScene | null>(null);
   const latestProps = useRef(props);
@@ -857,9 +979,11 @@ export default function GameBoard(props: GameBoardProps) {
   const [fallbackChanges, setFallbackChanges] = useState<
     Record<number, FallbackPillChange>
   >({});
+  const [furyMove, setFuryMove] = useState<{ id: number; placedAt: number; captures: number[] } | null>(null);
   const previousBoard = useRef(props.board);
   const moveId = useRef(0);
   const legalMovesKey = props.legalMoves.join(",");
+  const targetIndicesKey = props.targetIndices?.join(",");
   const blackStyleId = playerStyleId(props, 1);
   const whiteStyleId = playerStyleId(props, 2);
 
@@ -875,31 +999,49 @@ export default function GameBoard(props: GameBoardProps) {
       matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced || removed || added.length !== 1) {
       setFallbackChanges({});
+      setFuryMove(null);
       latestProps.current.onAnimatingChange?.(false);
       return;
     }
     const captures = props.board.map((value, index) => value && before[index] && value !== before[index] ? index : -1).filter(index => index >= 0);
     const id = ++moveId.current;
+    const bounds = canvasHost.current?.getBoundingClientRect();
+    const inView = !document.hidden && !!bounds && bounds.bottom > 0 && bounds.top < innerHeight && bounds.right > 0 && bounds.left < innerWidth;
+    const intense = inView && isFlippocalypseMove(before, props.board, props.mode);
+    setFuryMove(intense ? { id, placedAt: added[0], captures } : null);
+    if (intense && !props.preview) playGameSound("fire");
     const changes: Record<number, FallbackPillChange> = {};
     props.board.forEach((value, index) => {
       if (value && value !== before[index])
         changes[index] = {
           id: `${id}-${index}`,
           from: before[index],
-          delay: before[index] ? captureDelay(index, added[0], captures) : 0,
+          delay: before[index] ? intense ? enhancedCaptureDelay(index, added[0], captures) : captureDelay(index, added[0], captures) : 0,
+          intense,
         };
     });
     setFallbackChanges(webgl ? {} : changes);
     latestProps.current.onAnimatingChange?.(true);
     const timer = setTimeout(
-      () => latestProps.current.onAnimatingChange?.(false),
-      moveSettleMs(captures.length),
+      () => { setFuryMove(null); latestProps.current.onAnimatingChange?.(false); },
+      intense ? FLIPPOCALYPSE_MS : moveSettleMs(captures.length),
     );
     return () => {
       clearTimeout(timer);
       latestProps.current.onAnimatingChange?.(false);
     };
-  }, [props.board, blackStyleId, whiteStyleId, props.reducedMotion, webgl]);
+  }, [props.board, blackStyleId, whiteStyleId, props.reducedMotion, props.mode, webgl]);
+
+  useEffect(() => {
+    if (!canvasHost.current) return;
+    const hide = () => { if (document.hidden) setFuryMove(null); };
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) setFuryMove(null);
+    });
+    observer.observe(canvasHost.current);
+    document.addEventListener("visibilitychange", hide);
+    return () => { observer.disconnect(); document.removeEventListener("visibilitychange", hide); };
+  }, []);
 
   useEffect(() => {
     if (!canvasHost.current) return;
@@ -931,6 +1073,9 @@ export default function GameBoard(props: GameBoardProps) {
     props.disabled,
     props.reducedMotion,
     props.preview,
+    props.mode,
+    props.targetMode,
+    targetIndicesKey,
   ]);
 
   function navigate(event: KeyboardEvent<HTMLButtonElement>, index: number) {
@@ -953,6 +1098,8 @@ export default function GameBoard(props: GameBoardProps) {
   return (
     <div
       className={`pill-board ${webgl ? "pill-board--webgl" : "pill-board--fallback"}`}
+      data-flippocalypse={furyMove ? "active" : "idle"}
+      data-target-mode={props.targetMode ?? undefined}
       style={{
         position: "relative",
         width: "100%",
@@ -960,11 +1107,9 @@ export default function GameBoard(props: GameBoardProps) {
         borderRadius: "13px",
         overflow: "hidden",
         background: "#759451",
-        boxShadow: "0 4px 0 #57723d, 0 7px 10px #4d573123",
         isolation: "isolate",
       }}
     >
-      <style>{`.pill-board__cell{border:0;background:transparent;border-radius:5px;padding:0;display:flex;align-items:center;justify-content:center;position:relative;min-width:0;min-height:0;outline:none;-webkit-tap-highlight-color:transparent}.pill-board__cell:focus-visible{box-shadow:inset 0 0 0 3px #fff4c5;z-index:2}.pill-board--fallback .pill-board__cell{background:linear-gradient(130deg,#96b470,#82a45a);border:1px solid #6c8e49;box-shadow:inset 0 1px #b3c68d80}.pill-board--fallback .pill-board__cell[data-legal=true]:hover{background:#a5c77b}.pill-board__fallback-avatar{width:83%;height:83%;pointer-events:none}.pill-board__fallback-avatar svg{width:100%;height:100%}.pill-board__marker{width:28%;height:28%;border-radius:50%;background:#c2e787;border:1px solid #678b3c;box-shadow:0 2px 3px #3e592738}.pill-board__selected{position:absolute;width:59%;height:59%;border:2px solid #edffcf;border-radius:50%;box-shadow:0 0 0 3px #a9d16b70}.pill-board--webgl .pill-board__cell[data-legal=true]:hover{background:#d5e8a810}`}</style>
       <div
         ref={canvasHost}
         style={{
@@ -975,7 +1120,7 @@ export default function GameBoard(props: GameBoardProps) {
       />
       <div
         role="grid"
-        aria-label="Othello board. Use arrow keys to move between tiles. Press Enter or Space to select a legal move or make a pill jump."
+        aria-label={props.targetMode ? `Othello board. Choose a highlighted tile for ${props.targetMode === "shield" ? "your shield" : "your corner claim"}. Use arrow keys, then Enter or Space.` : "Othello board. Use arrow keys to move between tiles. Press Enter or Space to select a legal move or make a pill jump."}
         aria-rowcount={8}
         aria-colcount={8}
         style={{
@@ -992,8 +1137,11 @@ export default function GameBoard(props: GameBoardProps) {
               const index = row * 8 + col;
               const value = props.board[index] || 0;
               const legal =
-                props.legalMoves.includes(index) && !value && !props.disabled;
-              const selected = props.selected === index && legal;
+                !props.targetMode && props.legalMoves.includes(index) && !value && !props.disabled;
+              const target = !!props.targetMode && !!props.targetIndices?.includes(index) && !props.disabled;
+              const selected = props.selected === index && (legal || target);
+              const shield = Array.isArray(props.effects) ? props.effects.find((effect) => effect.ability === "shield" && effect.index === index) : props.effects?.shield?.index === index ? props.effects.shield : null;
+              const corner = Array.isArray(props.effects) ? props.effects.find((effect) => effect.ability === "corner" && effect.index === index) : props.effects?.corner?.index === index ? props.effects.corner : null;
               return (
                 <button
                   key={index}
@@ -1005,15 +1153,17 @@ export default function GameBoard(props: GameBoardProps) {
                   className="pill-board__cell"
                   data-legal={legal}
                   data-cell={cellName(index)}
-                  aria-label={`${cellName(index)}, ${value ? (isDark(value) ? "black piece, make it jump" : "white piece, make it jump") : "empty"}${legal ? ", legal move" : ""}`}
+                  data-target={target || undefined}
+                  data-fury={!webgl && furyMove?.placedAt === index ? "attacker" : undefined}
+                  aria-label={`${cellName(index)}, ${value ? (isDark(value) ? "black piece, make it jump" : "white piece, make it jump") : "empty"}${legal ? ", legal move" : ""}${target ? `, choose for ${props.targetMode}` : ""}${shield ? `, shielded for ${shield.owner === 1 ? "black" : "white"}` : ""}${corner ? `, reserved for ${corner.owner === 1 ? "black" : "white"}` : ""}`}
                   aria-selected={selected}
-                  aria-disabled={!legal && !value}
+                  aria-disabled={!legal && !target && !value}
                   aria-rowindex={row + 1}
                   aria-colindex={col + 1}
                   tabIndex={props.preview ? -1 : focusIndex === index ? 0 : -1}
-                  style={{ cursor: legal || value ? "pointer" : "default" }}
+                  style={{ cursor: legal || target || value ? "pointer" : "default" }}
                   onClick={() => {
-                    if (legal) {
+                    if (legal || target) {
                       props.onSelect(index);
                       if (!props.preview && props.selected !== index)
                         playGameSound("select");
@@ -1057,14 +1207,40 @@ export default function GameBoard(props: GameBoardProps) {
                   {!webgl && selected && (
                     <span className="pill-board__selected" />
                   )}
+                  {target && <span className={`pill-board__target ${selected ? "is-selected" : ""}`} aria-hidden="true"><AbilityIcon type={props.targetMode!} /></span>}
+                  {(shield || corner) && <span className={`pill-board__effect pill-board__effect--${shield ? "shield" : "corner"}`} data-owner={(shield ?? corner)!.owner} aria-hidden="true"><AbilityIcon type={shield ? "shield" : "corner"} /></span>}
                 </button>
               );
             })}
           </div>
         ))}
       </div>
+      {!webgl && furyMove && <div key={furyMove.id} className="pill-board__fire-trails" aria-hidden="true">{[furyMove.placedAt, ...furyMove.captures].slice(0, 24).map((index, order) => {
+        const gradientId = `${fireId}-flame-${index}`;
+        const glowId = `${fireId}-glow-${index}`;
+        return <svg key={index} viewBox="0 0 100 100" style={{ left: `${index % 8 * 12.5}%`, top: `${Math.floor(index / 8) * 12.5}%`, animationDelay: `${order % 3 * -70}ms` }}>
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="1" x2=".35" y2="0">
+              <stop stopColor="#fffbe0" /><stop offset=".35" stopColor="#ffec91" /><stop offset=".7" stopColor="#ffc34c" stopOpacity=".88" /><stop offset="1" stopColor="#ef7629" stopOpacity="0" />
+            </linearGradient>
+            <radialGradient id={glowId}><stop stopColor="#fff3b6" stopOpacity=".06" /><stop offset=".65" stopColor="#ffcc51" stopOpacity=".38" /><stop offset="1" stopColor="#ffb130" stopOpacity="0" /></radialGradient>
+          </defs>
+          <ellipse cx="50" cy="55" rx="59" ry="52" fill={`url(#${glowId})`} />
+          <path className="fire-trail__halo" d={FIRE_CURLS[order % FIRE_CURLS.length]} />
+          <g className="fire-trail__tongues" fill={`url(#${gradientId})`}>
+            <path d="M27 91C0 79 8 47 23 32C16 50 32 51 28 64C43 43 28 21 47 2C40 31 57 39 47 57C59 78 43 94 27 91Z" />
+            <path d="M75 94C100 83 95 58 83 44C90 63 70 63 75 76C53 54 78 35 62 13C67 40 50 52 62 69C52 87 64 96 75 94Z" />
+          </g>
+          <path className="fire-trail__core" d={FIRE_CURLS[order % FIRE_CURLS.length]} />
+          <path fill="#fff6b7" d="m77 5 3 9 10 3-10 3-3 10-3-10-10-3 10-3Z" /><path fill="#ffe082" d="m15 82 2 6 6 2-6 2-2 6-2-6-6-2 6-2Z" />
+        </svg>;
+      })}</div>}
     </div>
   );
+}
+
+function AbilityIcon({ type }: { type: "shield" | "corner" }) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" focusable="false">{type === "shield" ? <><path d="M12 2 21 6v6c0 5-9 10-9 10S3 17 3 12V6Z" /><path d="m8 12 3 3 5-6" /></> : <><path d="m3 11 9-8 9 8M5 10v11h14V10" /><path d="M10 21v-7h4v7M18 3v5" /></>}</svg>;
 }
 
 export { GameBoard };

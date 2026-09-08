@@ -64,6 +64,23 @@ beforeEach(() => { vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(Date
 afterEach(() => vi.useRealTimers());
 
 describe("PartyKit public CPU practice API", () => {
+  it("accepts explicit Classic results and rejects Enhanced results without changing rankings", async () => {
+    const h = harness();
+    const identity = await h.player();
+    const record = fullMatch();
+    for (const mode of ["enhanced", "unknown", null]) {
+      const rejected = await h.submit(identity, { ...record, mode });
+      expect(rejected.status).toBe(400);
+    }
+    expect(await (await h.request("/leaderboard")).json()).toEqual({ players: [] });
+    const accepted = await h.submit(identity, { ...record, mode: "classic" });
+    expect(accepted.status).toBe(200);
+    expect(await accepted.json()).toMatchObject({ duplicate: false });
+    const rankings = await (await h.request("/leaderboard")).json() as { players: Array<{ games: number }> };
+    expect(rankings.players).toHaveLength(1);
+    expect(rankings.players[0].games).toBe(1);
+  });
+
   it("rejects every request outside the single global room without creating another store", async () => {
     const storage = new MemoryStorage();
     const server = new PracticeRankings({ id: "another-room", storage, env: {} } as unknown as Party.Room);

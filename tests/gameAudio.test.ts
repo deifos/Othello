@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { createUISFX } = vi.hoisted(() => ({ createUISFX: vi.fn() }));
+const { createUISFX, createFireVoice } = vi.hoisted(() => ({ createUISFX: vi.fn(), createFireVoice: vi.fn() }));
 vi.mock("uisfx", () => ({ createUISFX }));
+vi.mock("../src/lib/fireSound", () => ({ createFireVoice }));
 
 class AudioDocument extends EventTarget {
   hidden = false;
@@ -39,6 +40,7 @@ describe("game audio lifecycle", () => {
   beforeEach(async () => {
     vi.resetModules();
     createUISFX.mockReset();
+    createFireVoice.mockReset();
     player = mockPlayer();
     createUISFX.mockReturnValue(player);
     page = new AudioDocument();
@@ -51,6 +53,7 @@ describe("game audio lifecycle", () => {
   afterEach(() => {
     stop?.();
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it("creates no player until unlock and starts with Zen selected", async () => {
@@ -161,5 +164,81 @@ describe("game audio lifecycle", () => {
     const visibility = vi.mocked(page.addEventListener).mock.calls.find(([type]) => type === "visibilitychange")?.[1] as EventListener;
     page.hidden = true;
     expect(() => visibility(new Event("visibilitychange"))).not.toThrow();
+  });
+
+  function installContext() {
+    const context = { state: "running", close: vi.fn().mockResolvedValue(undefined) };
+    const Constructor = vi.fn(function () { return context; });
+    vi.stubGlobal("AudioContext", Constructor);
+    return { context, Constructor };
+  }
+
+  it("shares the unlocked context, plays one fire voice, and follows the selected style", async () => {
+    const { context, Constructor } = installContext();
+    const stopVoice = vi.fn();
+    createFireVoice.mockReturnValue(stopVoice);
+    audio.playGameSound("fire");
+    expect(Constructor).not.toHaveBeenCalled();
+    await audio.unlockGameAudio();
+    expect(createUISFX).toHaveBeenCalledWith(expect.objectContaining({ context }));
+    audio.configureGameAudio(true, "dreamy");
+    audio.playGameSound("fire");
+    audio.playGameSound("fire");
+    expect(createFireVoice).toHaveBeenCalledExactlyOnceWith(context, "dreamy");
+    expect(player.play).not.toHaveBeenCalled();
+    audio.configureGameAudio(false, "dreamy");
+    expect(stopVoice).toHaveBeenCalledOnce();
+    audio.playGameSound("fire");
+    expect(createFireVoice).toHaveBeenCalledOnce();
+  });
+
+  it("stops fire on hiding, style changes, and unmount; closes the shared context", async () => {
+    const { context } = installContext();
+    const stopVoice = vi.fn();
+    createFireVoice.mockReturnValue(stopVoice);
+    let clock = 1000;
+    vi.spyOn(performance, "now").mockImplementation(() => clock);
+    await audio.unlockGameAudio();
+    audio.playGameSound("fire");
+    page.setHidden(true);
+    expect(stopVoice).toHaveBeenCalledTimes(1);
+    audio.playGameSound("fire");
+    expect(createFireVoice).toHaveBeenCalledTimes(1);
+    page.setHidden(false);
+    clock += 1100;
+    audio.playGameSound("fire");
+    audio.configureGameAudio(true, "dreamy");
+    expect(stopVoice).toHaveBeenCalledTimes(2);
+    clock += 1100;
+    audio.playGameSound("fire");
+    expect(createFireVoice).toHaveBeenLastCalledWith(context, "dreamy");
+    stop?.();
+    stop = undefined;
+    expect(stopVoice).toHaveBeenCalledTimes(3);
+    expect(context.close).toHaveBeenCalledOnce();
+    vi.mocked(performance.now).mockRestore();
+  });
+
+  it.each(["mute", "style", "hidden", "unmount"] as const)("discards fire queued before %s", async (change) => {
+    installContext();
+    const pending = deferred<boolean>();
+    player.unlock.mockReturnValueOnce(pending.promise);
+    const unlocked = audio.unlockGameAudio();
+    audio.playGameSound("fire");
+    if (change === "mute") audio.configureGameAudio(false, "zen");
+    if (change === "style") audio.configureGameAudio(true, "dreamy");
+    if (change === "hidden") page.setHidden(true);
+    if (change === "unmount") { stop?.(); stop = undefined; }
+    pending.resolve(true);
+    await unlocked;
+    expect(createFireVoice).not.toHaveBeenCalled();
+  });
+
+  it("leaves fire silent when Web Audio is unavailable", async () => {
+    await audio.unlockGameAudio();
+    expect(() => audio.playGameSound("fire")).not.toThrow();
+    expect(createFireVoice).not.toHaveBeenCalled();
+    audio.playGameSound("place");
+    expect(player.play).toHaveBeenCalledOnce();
   });
 });

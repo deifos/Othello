@@ -60,6 +60,8 @@ export interface VerifiedMatch {
 /** Only the move record is used. Client dates, piece counts, and outcomes are ignored. */
 export function verifyMatch(value: unknown): VerifiedMatch {
   const match = object(value);
+  if (match.mode !== undefined && match.mode !== "classic")
+    throw new HttpError(400, "These rankings accept Classic CPU practice only.");
   const id = identifier(match.id);
   if (!["easy", "normal", "hard"].includes(match.difficulty as string))
     throw new HttpError(400, "Invalid difficulty.");

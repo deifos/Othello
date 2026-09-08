@@ -16,6 +16,7 @@ export type FallbackPillChange = {
   id: string | number;
   from: number;
   delay: number;
+  intense?: boolean;
 };
 
 export type FallbackPillProps = {
@@ -376,7 +377,7 @@ export default function FallbackPill({
               styleId={capturing ? fromStyleId ?? styleId : styleId}
               color={colorName(capturing ? move!.from : value)}
               expression={
-                hopHappy ? "grin" : capturing ? "sad" : move ? "grin" : undefined
+                hopHappy ? "grin" : capturing ? change?.intense ? "surprised" : "sad" : move ? "grin" : undefined
               }
               blink={move || hopHappy ? "open" : undefined}
               reducedMotion={reducedMotion}

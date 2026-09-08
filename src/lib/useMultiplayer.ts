@@ -27,6 +27,8 @@ export function useMultiplayer(profile: Profile) {
     createRoom: client.createRoom,
     joinRoom: client.joinRoom,
     ready: client.ready,
+    setMode: client.setMode,
+    useAbility: client.useAbility,
     move: client.move,
     surrender: client.surrender,
     rematch: client.rematch,

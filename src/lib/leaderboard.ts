@@ -67,6 +67,7 @@ function isPendingResult(value: unknown): value is PendingResult {
     typeof profile.name === "string" &&
     typeof profile.styleId === "string" &&
     !!result &&
+    result.mode !== "enhanced" &&
     typeof result.id === "string" &&
     typeof result.date === "string" &&
     typeof result.black === "number" &&
@@ -171,6 +172,7 @@ export async function enqueueResult(
   profile: Profile,
   result: MatchResult,
 ): Promise<void> {
+  if (result.mode === "enhanced") return;
   if (completedThisSession.has(result.id)) return;
   if (!getPending().some((item) => item.result.id === result.id)) {
     savePending([

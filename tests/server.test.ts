@@ -220,6 +220,24 @@ function matchBody(
 }
 
 describe("practice rankings API", () => {
+  it("rejects Enhanced results before storage and accepts an explicit Classic result", async () => {
+    const { base } = await launch();
+    const identity = await player(base);
+    const headers = { Authorization: `Bearer ${identity.token}` };
+    const record = fullMatch();
+    for (const mode of ["enhanced", "unknown", null]) {
+      const response = await request(base, "/matches", matchBody(identity, { ...record, mode }), headers);
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ error: expect.stringContaining("Classic") });
+    }
+    expect(await (await request(base, "/leaderboard")).json()).toEqual({ players: [] });
+    const accepted = await request(base, "/matches", matchBody(identity, { ...record, mode: "classic" }), headers);
+    expect(accepted.status).toBe(200);
+    const rankings = await (await request(base, "/leaderboard")).json();
+    expect(rankings.players).toHaveLength(1);
+    expect(rankings.players[0].games).toBe(1);
+  });
+
   it("accepts the emoji and punctuation allowed in the profile form", async () => {
     const { base } = await launch();
     for (const name of ["Vlad 🎮", "Flip!", "Little <Flipper>"]) {

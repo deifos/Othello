@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { getLegalMoves } from '../src/game/engine';
-import type { MatchSnapshot, ServerMessage } from '../src/game/protocol';
+import { PROTOCOL_VERSION, type MatchSnapshot, type ServerMessage } from '../src/game/protocol';
 
 // Runs against a real Wrangler or deployed Worker. Creates one short-lived room.
 // Practice writes are local-only unless --write-practice is explicitly supplied.
@@ -39,11 +39,11 @@ async function connect(token:string, create:boolean) {
   const last=messages.findLast(m=>m.type==='snapshot'||m.type==='welcome');
   assert(last && (last.type==='snapshot'||last.type==='welcome')); return last.snapshot;
  };
- ws.send(JSON.stringify({version:2,type:'join',requestId:randomUUID(),token,name:create?'Check one':'Check two',styleId:'classic',create}));
+ ws.send(JSON.stringify({version:PROTOCOL_VERSION,type:'join',requestId:randomUUID(),token,name:create?'Check one':'Check two',styleId:'classic',create}));
  await wait(m=>m.type==='welcome');
  const send = async (type:string,extra:Record<string,unknown>={}) => {
   const requestId=randomUUID(); const state=snapshot();
-  ws.send(JSON.stringify({version:2,type,requestId,matchId:state.matchId,expectedRevision:state.revision,...extra}));
+  ws.send(JSON.stringify({version:PROTOCOL_VERSION,type,requestId,matchId:state.matchId,expectedRevision:state.revision,...extra}));
   return wait(m=>(m.type==='snapshot'&&m.acceptedRequestId===requestId)||(m.type==='rejected'&&m.requestId===requestId)||m.type==='left');
  };
  return {ws,wait,snapshot,send};

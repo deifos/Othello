@@ -40,6 +40,9 @@ import MusicSettings from "./components/MusicSettings";
 import { useMusic } from "./lib/useMusic";
 import { useMultiplayer } from "./lib/useMultiplayer";
 import MultiplayerPage from "./components/MultiplayerPage";
+import GameSetup, { GameSetupFields } from "./components/GameSetup";
+import AbilityPanel, { abilityTargets, type TargetAbility } from "./components/AbilityPanel";
+import type { GameMode } from "./game/enhanced";
 import {
   configureGameAudio,
   isSoundStyle,
@@ -202,11 +205,6 @@ function Button({
     </button>
   );
 }
-const difficultyLabels = {
-  easy: "Easy breezy",
-  normal: "A little challenge",
-  hard: "Think it through",
-};
 export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const mobileMenuButton = useRef<HTMLButtonElement>(null);
@@ -248,7 +246,7 @@ export default function App() {
   const onlineVictory = multiplayer.snapshot?.phase === "finished" &&
     multiplayer.snapshot.result?.winner === onlinePlayer?.color;
   const music = useMusic(
-    (page === "play" && !game.state.finished) ||
+    (page === "play" && game.state.started && !game.state.finished) ||
       (page === "multiplayer" && multiplayer.snapshot?.phase === "playing") ? "match" : "menu",
     page === "multiplayer" && onlineVictory ? multiplayer.snapshot!.matchId :
       page === "play" && game.state.finished && !game.state.surrendered &&
@@ -257,6 +255,8 @@ export default function App() {
   const [defaultDifficulty, setDefaultDifficulty] = useState<Difficulty>(
     game.state.difficulty,
   );
+  const [defaultMode, setDefaultMode] = useState<GameMode>(() => readStored("flip.preferredMode", game.state.mode, value => value === "classic" || value === "enhanced"));
+  useEffect(() => writeStored("flip.preferredMode", defaultMode), [defaultMode]);
   useEffect(() => {
     const listener = () => {
       setPage(getPage());
@@ -360,13 +360,14 @@ export default function App() {
       difficulty: game.state.difficulty,
       moves: game.state.moves,
       surrendered: game.state.surrendered,
+      mode: game.state.mode,
     };
     setResults((prev) => {
       const next = [result, ...prev].slice(0, 1000);
       writeStored("flip.results", next);
       return next;
     });
-    void enqueueResult(profile, result).catch(() =>
+    if (game.state.mode === "classic") void enqueueResult(profile, result).catch(() =>
       setToast("Game saved on this device. Rankings are offline."),
     );
   }, [game.state, game.score, results, profile]);
@@ -387,8 +388,7 @@ export default function App() {
     if (page !== "play") {
       silentNavigation.current = !game.state.started || game.state.finished;
     }
-    if (game.state.finished) game.reset(defaultDifficulty);
-    else game.start();
+    if (game.state.finished) setModal("new");
     navigate("play");
   }
   function saveProfile(name: string) {
@@ -526,18 +526,15 @@ export default function App() {
             }
           />
         )}
-        {page === "play" && (
+        {page === "play" && !game.state.started && <GameSetup mode={defaultMode} difficulty={defaultDifficulty} onMode={setDefaultMode} onDifficulty={setDefaultDifficulty} onStart={() => game.reset(defaultDifficulty, defaultMode)} />}
+        {page === "play" && game.state.started && (
           <GameView
             game={game}
             profile={profile}
             motion={motion}
             onSettings={() => setModal("settings")}
             onSurrender={() => setModal("surrender")}
-            onNew={() =>
-              game.state.finished
-                ? game.reset(defaultDifficulty)
-                : setModal("new")
-            }
+            onNew={() => setModal("new")}
             onBack={() => navigate("home")}
             onCharacters={() => navigate("characters")}
           />
@@ -557,7 +554,7 @@ export default function App() {
         )}
         {page === "how-to-play" && <HowTo onPlay={play} />}
         {page === "leaderboard" && (
-          <Leaderboard profile={profile} results={results} onPlay={play} />
+          <Leaderboard profile={profile} results={results.filter(result => result.mode !== "enhanced")} onPlay={play} />
         )}
       </main>
       <SiteFooter
@@ -581,7 +578,7 @@ export default function App() {
                 : modal === "music"
                   ? "A little music for your game."
                 : modal === "new"
-                  ? "A fresh start?"
+                  ? "Choose your next match."
                   : modal === "surrender"
                     ? "Leave this match?"
                     : informationTitles[modal]
@@ -688,13 +685,14 @@ export default function App() {
                   ? "This will replace your saved match with a new board."
                   : "This match will count as a loss. Your other results will stay saved."}
               </p>
+              {modal === "new" && <GameSetupFields mode={defaultMode} difficulty={defaultDifficulty} onMode={setDefaultMode} onDifficulty={setDefaultDifficulty} />}
               <div className="modal-buttons">
                 <Button onClick={() => closeModal()}>Keep playing</Button>
                 <Button
                   kind="primary"
                   onClick={() => {
                     modal === "new"
-                      ? game.reset(defaultDifficulty)
+                      ? game.reset(defaultDifficulty, defaultMode)
                       : game.surrender();
                     closeModal(true);
                   }}
@@ -730,7 +728,12 @@ function GameView({
   onCharacters: () => void;
 }) {
   const { state, score, legalMoves, selected, busy } = game;
+  useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" }); }, [state.id]);
   const [animating, setAnimating] = useState(false);
+  const [target, setTarget] = useState<TargetAbility>(null);
+  useEffect(() => { setTarget(null); }, [state.id, state.rules]);
+  const canAct = state.turn === 1 && !busy && !animating && !state.finished;
+  const targets = abilityTargets(state.rules, 1, target);
   const humanOutcome: ResultOutcome | undefined = !state.finished
     ? undefined
     : state.surrendered || score.black < score.white
@@ -787,75 +790,106 @@ function GameView({
         </div>
       </div>
       <div className="game-layout">
-        <section className="board-panel">
-          <div className="board-heading">
-            <div className="board-heading-title">
-              <Sprout />
-              <div>
-                <h1>Classic Match</h1>
-                <p>Small moves. Beautiful possibilities.</p>
+        <div className="board-column">
+          <section className="board-panel">
+            <div className="board-heading">
+              <div className="board-heading-title">
+                <Sprout />
+                <div>
+                  <h1>{state.mode === "enhanced" ? "Enhanced Match" : "Classic Match"}</h1>
+                  <p>{state.mode === "enhanced" ? "Earn a little power. Make a big flip." : "Small moves. Beautiful possibilities."}</p>
+                </div>
+              </div>
+              <span className="mode-tag board-mode-tag">YOU VS. CPU</span>
+              <Button className="board-settings" onClick={onSettings}>
+                <Settings2 size={17} />
+                Settings
+              </Button>
+            </div>
+            <div className="board-with-labels">
+              <div className="column-labels">
+                {"ABCDEFGH".split("").map((l) => (
+                  <span key={l}>{l}</span>
+                ))}
+              </div>
+              <div className="row-labels">
+                {Array.from({ length: 8 }, (_, i) => (
+                  <span key={i}>{i + 1}</span>
+                ))}
+              </div>
+              <div className="board-slot">
+                <Suspense
+                  fallback={
+                    <div className="board-loading">
+                      <Sprout />
+                      <p>Growing your garden…</p>
+                    </div>
+                  }
+                >
+                  <GameBoard
+                    key={state.id}
+                    board={state.board}
+                    legalMoves={legalMoves.map((m) => m.index)}
+                    selected={selected}
+                    onSelect={game.setSelected}
+                    mode={state.mode}
+                    effects={state.effects}
+                    targetMode={target}
+                    targetIndices={targets}
+                    disabled={
+                      state.turn !== 1 || busy || animating || state.finished
+                    }
+                    onAnimatingChange={setAnimating}
+                    styleId={profile.styleId}
+                    reducedMotion={motion}
+                  />
+                </Suspense>
               </div>
             </div>
-            <span className="mode-tag board-mode-tag">YOU VS. CPU</span>
-            <span className="level-badge">
-              {difficultyLabels[state.difficulty]}
-            </span>
-          </div>
-          <div className="board-with-labels">
-            <div className="column-labels">
-              {"ABCDEFGH".split("").map((l) => (
-                <span key={l}>{l}</span>
-              ))}
+            <div className="board-tip">
+              <Lightbulb size={23} />
+              <p>
+                <strong>
+                  {state.finished
+                    ? "Good game!"
+                    : selected !== null
+                      ? "Nice choice!"
+                      : "Little tip:"}
+                </strong>{" "}
+                {target ? target === "shield" ? "Choose your pill to protect it for one opposing turn." : "Choose an empty corner to reserve it for one opposing turn." : state.finished
+                  ? "Every game is a chance to grow."
+                  : flips
+                    ? `This move will flip ${flips} ${flips === 1 ? "pill" : "pills"}. Press Place pill to play.`
+                    : `${best > 1 ? `You can flip up to ${best} pills.` : "Corners are keepers. Once yours, they cannot be flipped."}`}
+              </p>
+              {!state.finished && <span>✦</span>}
             </div>
-            <div className="row-labels">
-              {Array.from({ length: 8 }, (_, i) => (
-                <span key={i}>{i + 1}</span>
-              ))}
-            </div>
-            <div className="board-slot">
-              <Suspense
-                fallback={
-                  <div className="board-loading">
-                    <Sprout />
-                    <p>Growing your garden…</p>
-                  </div>
+          </section>
+          <div className="board-actions">
+            {state.finished ? (
+              <Button kind="primary place-button" onClick={onNew}>
+                <Play size={20} fill="currentColor" />
+                Play again
+              </Button>
+            ) : (
+              <Button
+                kind="primary place-button"
+                disabled={
+                  selected === null || !canAct || (target !== null && !targets.includes(selected))
                 }
+                onClick={() => { if (selected !== null) { if (target) game.useAbility(target, selected); else game.move(selected); } }}
               >
-                <GameBoard
-                  key={state.id}
-                  board={state.board}
-                  legalMoves={legalMoves.map((m) => m.index)}
-                  selected={selected}
-                  onSelect={game.setSelected}
-                  disabled={
-                    state.turn !== 1 || busy || animating || state.finished
-                  }
-                  onAnimatingChange={setAnimating}
-                  styleId={profile.styleId}
-                  reducedMotion={motion}
-                />
-              </Suspense>
-            </div>
+                <span className="pill-button-icon">⠿</span>{target === "shield" ? "Protect pill" : target === "corner" ? "Claim corner" : "Place pill"}{" "}
+                {selected !== null && (
+                  <span className="move-coordinate">
+                    {"ABCDEFGH"[selected % 8]}
+                    {Math.floor(selected / 8) + 1}
+                  </span>
+                )}
+              </Button>
+            )}
           </div>
-          <div className="board-tip">
-            <Lightbulb size={23} />
-            <p>
-              <strong>
-                {state.finished
-                  ? "Good game!"
-                  : selected !== null
-                    ? "Nice choice!"
-                    : "Little tip:"}
-              </strong>{" "}
-              {state.finished
-                ? "Every game is a chance to grow."
-                : flips
-                  ? `This move will flip ${flips} ${flips === 1 ? "pill" : "pills"}. Press Place pill to play.`
-                  : `${best > 1 ? `You can flip up to ${best} pills.` : "Corners are keepers. Once yours, they cannot be flipped."}`}
-            </p>
-            {!state.finished && <span>✦</span>}
-          </div>
-        </section>
+        </div>
         <aside className="game-sidebar">
           <div
             className={`turn-card ${state.finished ? "finished" : ""}`}
@@ -922,41 +956,20 @@ function GameView({
               <strong>{score.empty}</strong>
             </div>
           </div>
-          <div className="game-tools">
+          {state.mode === "classic" && <div className="game-tools">
             <Button
               onClick={game.undo}
-              disabled={!state.history.length || state.finished || animating}
+              disabled={!game.canUndo || state.finished || animating}
             >
               <RotateCcw size={18} />
               Undo
             </Button>
-            <Button onClick={onSettings}>
-              <Settings2 size={18} />
-              Settings
-            </Button>
-          </div>
-          {state.finished ? (
-            <Button kind="primary place-button" onClick={onNew}>
-              <Play size={20} fill="currentColor" />
-              Play again
-            </Button>
-          ) : (
-            <Button
-              kind="primary place-button"
-              disabled={
-                selected === null || state.turn !== 1 || busy || animating
-              }
-              onClick={() => selected !== null && game.move(selected)}
-            >
-              <span className="pill-button-icon">⠿</span>Place pill{" "}
-              {selected !== null && (
-                <span className="move-coordinate">
-                  {"ABCDEFGH"[selected % 8]}
-                  {Math.floor(selected / 8) + 1}
-                </span>
-              )}
-            </Button>
-          )}
+          </div>}
+          <AbilityPanel rules={state.rules} player={1} canAct={canAct} target={target} onChoose={ability => {
+            game.setSelected(null);
+            if (ability === "undo") game.useAbility("undo");
+            else setTarget(current => current === ability ? null : ability);
+          }} onCancel={() => { setTarget(null); game.setSelected(null); }} />
           <button className="change-pal" onClick={onCharacters}>
             <PillAvatar styleId={profile.styleId} size={35} />
             <span>Your style, your game.</span>
@@ -964,7 +977,7 @@ function GameView({
           </button>
           <p className="autosave">
             <ShieldCheck size={13} />
-            Your match is saved automatically.
+            {state.mode === "enhanced" ? "Enhanced results stay on this device." : "Your match is saved automatically."}
           </p>
         </aside>
       </div>

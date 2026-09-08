@@ -706,6 +706,23 @@ button svg {
   gap: 25px;
   align-items: start;
 }
+.board-column {
+  min-width: 0;
+}
+.board-actions {
+  position: sticky;
+  bottom: 16px;
+  z-index: 20;
+  margin-top: 14px;
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 5px 20px #36462520;
+}
+.board-actions > .room-footnote {
+  margin: 0;
+  padding: 10px 14px;
+  text-align: center;
+}
 .board-panel {
   border: 1px solid var(--line);
   padding: 25px 25px 18px 20px;
@@ -714,7 +731,9 @@ button svg {
   box-shadow: var(--shadow);
 }
 .board-heading {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
   justify-content: space-between;
   align-items: center;
   padding: 0 3px 19px 6px;
@@ -723,6 +742,25 @@ button svg {
   display: flex;
   gap: 14px;
   align-items: center;
+  min-width: 0;
+}
+.board-heading-title > div {
+  min-width: 0;
+}
+.button.board-settings {
+  min-height: 42px;
+  padding: 9px 13px;
+  gap: 7px;
+  font-size: 12px;
+  border: 1px solid var(--green);
+  border-radius: 10px;
+  background: var(--soft);
+  color: var(--ink);
+  box-shadow: 0 3px 0 #6b81432b;
+}
+.button.board-settings:hover {
+  background: color-mix(in srgb, var(--panel) 85%, var(--green));
+  box-shadow: 0 3px 0 #6b814340;
 }
 .board-heading-title > svg {
   width: 32px;
@@ -876,6 +914,21 @@ button svg {
 }
 .turn-card.finished > div > svg {
   color: #c69d39;
+}
+.game-page .turn-card.finished {
+  min-height: 0;
+  padding: 14px 16px !important;
+}
+.game-page .turn-card.finished > div {
+  gap: 8px !important;
+}
+.game-page .turn-card.finished > div > svg {
+  width: 18px;
+  height: 18px;
+}
+.game-page .turn-card.finished h2 {
+  font-size: 14px !important;
+  line-height: 1.35;
 }
 .player-card {
   position: relative;
@@ -2047,6 +2100,28 @@ td:last-child {
 .mobile-play-picked {
   display: none;
 }
+@media (min-width: 741px) and (max-width: 1000px) {
+  .game-page .turn-card.finished h2 {
+    font-size: 13px !important;
+  }
+}
+@media (max-width: 1000px) {
+  .game-page .board-heading {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 10px;
+  }
+  .game-page .board-mode-tag {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: start;
+    margin-inline: 0;
+  }
+  .game-page .board-settings {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    min-height: 44px;
+  }
+}
 #main:focus {
   outline: none;
 }
@@ -2064,7 +2139,14 @@ td:last-child {
   .game-page {
     padding-bottom: 87px !important;
   }
-  .game-sidebar > .place-button {
+  .game-page .board-heading h1 {
+    font-size: 20px !important;
+  }
+  .board-column,
+  .board-actions {
+    display: contents;
+  }
+  .board-actions > .place-button {
     position: fixed;
     bottom: 14px;
     left: 18px;
@@ -2079,7 +2161,7 @@ td:last-child {
   .game-tools {
     width: 100% !important;
   }
-  .game-sidebar > .place-button:disabled {
+  .board-actions > .place-button:disabled {
     opacity: 0.98;
     background: #c7d2b1;
   }

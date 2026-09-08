@@ -1,6 +1,7 @@
 import type { Board, Player } from "./engine";
+import type { Ability, GameMode, RulesView } from "./enhanced";
 
-export const PROTOCOL_VERSION = 2 as const;
+export const PROTOCOL_VERSION = 3 as const;
 export const RECONNECT_GRACE_MS = 60_000;
 export const ROOM_CODE_PATTERN = /^[A-HJ-NP-Z2-9]{6}$/;
 
@@ -19,6 +20,10 @@ export interface MatchSnapshot {
   roomCode: string;
   matchId: string;
   revision: number;
+  mode: GameMode;
+  hostId: string | null;
+  /** Public rule state only. Undo history and award ledgers remain on the server. */
+  rules: RulesView;
   board: Board;
   turn: Player | null;
   players: MatchPlayer[];
@@ -45,6 +50,7 @@ export interface JoinCommand {
   name: string;
   styleId: string;
   create: boolean;
+  mode?: GameMode;
 }
 
 interface CommandEnvelope {
@@ -62,11 +68,14 @@ export type ClientCommand = CommandEnvelope & (
   | { type: "rematch" }
   | { type: "leave" }
   | { type: "sync" }
+  | { type: "set-mode"; mode: GameMode }
+  | { type: "ability"; ability: Ability; target?: number }
 );
 
 export type RejectionCode = "invalid-request" | "invalid-move" | "stale-revision" |
   "not-your-turn" | "not-playing" | "unauthorized" | "room-full" |
-  "room-not-found" | "room-exists" | "opponent-offline" | "rate-limited";
+  "room-not-found" | "room-exists" | "opponent-offline" | "rate-limited" |
+  "not-host" | "invalid-ability";
 
 export type ServerMessage = { version: typeof PROTOCOL_VERSION } & (
   | { type: "welcome"; playerId: string; snapshot: MatchSnapshot }

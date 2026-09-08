@@ -1,0 +1,64 @@
+/* The board, labels, canvas, and hit targets share one transform. */
+.game-page .board-with-labels {
+  transform: perspective(1800px) rotateX(13deg) scale(.965);
+  transform-origin: center center;
+  /* Reclaim the space above the projected board without changing its tilt. */
+  margin-block-start: -5%;
+}
+.game-page .board-with-labels:has(.pill-board[data-flippocalypse="active"]) {
+  animation: flippocalypse-shake 850ms linear;
+}
+/* Individual transform properties keep the existing board tilt intact. */
+@keyframes flippocalypse-shake {
+  0%,8%,100% { translate: 0 0; rotate: 0deg; }
+  18% { translate: -3px 1px; rotate: -.22deg; }
+  28% { translate: 3px -1px; rotate: .2deg; }
+  39% { translate: -2.5px .5px; rotate: -.16deg; }
+  50% { translate: 2px 0; rotate: .12deg; }
+  63% { translate: -1.2px 0; rotate: -.07deg; }
+  77% { translate: .6px 0; rotate: .035deg; }
+}
+.pill-board { box-shadow: 0 5px 0 #57723d, 0 9px 13px #4d573128; }
+.game-page .pill-board { box-shadow: 0 8px 0 #5b713f, 0 13px 0 #586c3b, 0 21px 20px -5px #424d3240; }
+.pill-board__cell { border:0;background:transparent;border-radius:5px;padding:0;display:flex;align-items:center;justify-content:center;position:relative;min-width:0;min-height:0;outline:none;-webkit-tap-highlight-color:transparent; }
+.pill-board__cell:focus-visible { box-shadow:inset 0 0 0 3px #fff4c5;z-index:2; }
+.pill-board--fallback .pill-board__cell { background:linear-gradient(130deg,#96b470,#82a45a);border:1px solid #6c8e49;box-shadow:inset 0 1px #b3c68d80; }
+.pill-board--fallback .pill-board__cell[data-legal=true]:hover { background:#a5c77b; }
+.pill-board__fallback-avatar { width:83%;height:83%;pointer-events:none; }
+.pill-board__fallback-avatar svg { width:100%;height:100%; }
+.pill-board__marker { width:28%;height:28%;border-radius:50%;background:#c2e787;border:1px solid #678b3c;box-shadow:0 2px 3px #3e592738; }
+.pill-board__selected { position:absolute;width:59%;height:59%;border:2px solid #edffcf;border-radius:50%;box-shadow:0 0 0 3px #a9d16b70; }
+.pill-board--webgl .pill-board__cell[data-legal=true]:hover { background:#d5e8a810; }
+.pill-board__effect, .pill-board__target { position:absolute;pointer-events:none;display:grid;place-items:center; }
+.pill-board__effect { inset:5%;border-radius:12%; }
+.pill-board__effect--shield { border:2px solid #cbf6f4;box-shadow:inset 0 0 14px #b5f5e85c,0 0 7px #dafff34d;color:#174e47; }
+.pill-board__effect svg { position:absolute;right:0;top:-2%;width:30%;height:30%;padding:2px;border-radius:50%;background:#ddfcf1;filter:drop-shadow(0 1px 1px #30483166); }
+.pill-board__effect--corner { border:2px dashed #fff1ac;background:#ffdd801a;color:#765321; }
+.pill-board__effect--corner svg { width:44%;height:44%;top:26%;right:26%;padding:5%;background:#fff0b5;border-radius:26%; }
+.pill-board__effect[data-owner="1"] svg { background:#465044;color:#fff5d7; }
+.pill-board__effect[data-owner="2"] svg { background:#fff9e7;color:#48513f; }
+.pill-board__target { inset:3%;border:2px dashed #fff2b3;border-radius:12%;background:#fff1a41c;color:#fff5c4; }
+.pill-board__target svg { position:absolute;right:2%;bottom:2%;width:30%;height:30%;padding:5%;border-radius:50%;background:#476a3dcc;box-shadow:0 1px 3px #21351b4d; }
+.pill-board__cell[data-target=true]:hover .pill-board__target,.pill-board__target.is-selected { border-style:solid;background:#fff1a436;box-shadow:inset 0 0 0 2px #ffe6a654; }
+.pill-board__fire-trails { position:absolute;inset:.45%;pointer-events:none;z-index:2; }
+.pill-board--fallback .pill-board__fallback-avatar { position:relative;z-index:3; }
+.pill-board__fire-trails svg { position:absolute;width:12.5%;height:12.5%;overflow:visible;animation:fire-trail 1150ms linear both; }
+.fire-trail__halo { fill:none;stroke:#ffad2a;stroke-width:14;stroke-linecap:round;opacity:.3;filter:drop-shadow(0 0 4px #ffba38); }
+.fire-trail__core { fill:none;stroke:#fff3bb;stroke-width:4;stroke-linecap:round;opacity:.9; }
+.fire-trail__tongues { opacity:.93;filter:drop-shadow(0 0 2px #ffc543); }
+.pill-board__cell[data-fury=attacker] .pill-board__fallback-avatar { animation:fury-pill 1150ms linear both;z-index:3; }
+@keyframes fire-trail { 0%{transform:rotate(-30deg) scale(.72);opacity:0}18%{opacity:1}60%{transform:rotate(40deg) scale(1.13);opacity:.95}100%{transform:rotate(84deg) scale(1.22);opacity:0} }
+@keyframes fury-pill { 0%,78%,100%{transform:translateY(0) scale(1)}20%,43%{transform:translateY(-14%) scale(1.65)} }
+@media(max-width:640px) {
+  .game-page .board-with-labels { transform:perspective(1300px) rotateX(12deg) scale(.975); margin-block-start:-3%; }
+  .game-page .pill-board { box-shadow:0 5px 0 #5b713f,0 8px 0 #586c3b,0 13px 12px -3px #424d3236; }
+  .pill-board__effect--shield,.pill-board__effect--corner,.pill-board__target { border-width:1.5px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .game-page .board-with-labels:has(.pill-board[data-flippocalypse="active"]) { animation:none; }
+  .pill-board__fire-trails { display:none; }
+  .pill-board__cell[data-fury=attacker] .pill-board__fallback-avatar { animation:none; }
+}
+[data-motion=reduced] .game-page .board-with-labels:has(.pill-board[data-flippocalypse="active"]) { animation:none; }
+[data-motion=reduced] .pill-board__fire-trails { display:none; }
+[data-motion=reduced] .pill-board__cell[data-fury=attacker] .pill-board__fallback-avatar { animation:none; }

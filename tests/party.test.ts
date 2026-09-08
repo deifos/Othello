@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as Party from "partykit/server";
-import OthelloRoom from "../party/server";
+import OthelloRoom, { MAX_ACCEPTED_REQUESTS } from "../party/server";
 import { applyMove, createBoard, getLegalMoves, getNextTurn, getScore } from "../src/game/engine";
 import type { Player } from "../src/game/engine";
+import { createRulesGame, getRulesLegalMoves, playRulesMove, projectRulesGame, useRulesAbility, type Ability, type GameMode } from "../src/game/enhanced";
+import { isMatchSnapshot } from "../src/lib/multiplayer";
 import { PROTOCOL_VERSION, RECONNECT_GRACE_MS } from "../src/game/protocol";
 import type { MatchSnapshot, ServerMessage } from "../src/game/protocol";
 
@@ -63,9 +65,9 @@ async function harness(storage = new MemoryStorage(), roomCode = "ABC234") {
     await raw(socket, command);
     return command;
   }
-  async function pair(start = true) {
+  async function pair(start = true, mode: GameMode = "classic") {
     const black = await connect();
-    await join(black, BLACK_TOKEN, true);
+    await join(black, BLACK_TOKEN, true, { mode });
     const white = await connect();
     await join(white, WHITE_TOKEN, false);
     if (start) { await send(black, "ready"); await send(white, "ready"); }
@@ -78,6 +80,159 @@ beforeEach(() => { requestNumber = 0; vi.useFakeTimers({ toFake: ["Date"] }); vi
 afterEach(() => vi.useRealTimers());
 
 describe("authoritative PartyKit rooms", () => {
+  it("lets only the host change the mode before play and resets both ready choices", async () => {
+    const h = await harness();
+    const { black, white } = await h.pair(false);
+    const hostId = black.snapshot.players[0].id;
+    expect(black.snapshot.hostId).toBe(hostId);
+    expect(black.snapshot.mode).toBe("classic");
+    await h.send(white, "set-mode", { mode: "enhanced" });
+    expect(white.rejection).toMatchObject({ code: "not-host" });
+    await h.send(black, "ready");
+    const before = black.snapshot.revision;
+    await h.send(black, "set-mode", { mode: "enhanced" });
+    expect(black.snapshot.mode).toBe("enhanced");
+    expect(black.snapshot.rules.mode).toBe("enhanced");
+    expect(black.snapshot.players.every(player => !player.ready)).toBe(true);
+    expect(black.snapshot.phase).toBe("waiting");
+    await h.send(black, "set-mode", { mode: "classic", expectedRevision: before });
+    expect(black.rejection).toMatchObject({ code: "stale-revision" });
+    await h.send(black, "set-mode", { mode: "unlimited" });
+    expect(black.rejection).toMatchObject({ code: "invalid-request" });
+    await h.send(black, "ready");
+    await h.send(white, "ready");
+    await h.send(black, "set-mode", { mode: "classic" });
+    expect(black.rejection).toMatchObject({ code: "not-playing" });
+    expect(black.snapshot.mode).toBe("enhanced");
+    await h.send(black, "surrender");
+    await h.send(black, "rematch");
+    await h.send(white, "rematch");
+    expect(black.snapshot.mode).toBe("enhanced");
+    expect(black.snapshot.hostId).toBe(hostId);
+    expect(black.snapshot.players.map(player => player.color)).toEqual([2, 1]);
+    expect(isMatchSnapshot(black.snapshot)).toBe(true);
+  });
+
+  it("transfers the host when a waiting host leaves or expires", async () => {
+    for (const expire of [false, true]) {
+      const h = await harness();
+      const { black, white } = await h.pair(false);
+      if (expire) {
+        await h.server.onClose(black.connection);
+        vi.setSystemTime(Date.now() + RECONNECT_GRACE_MS);
+        await h.server.onAlarm();
+      } else await h.send(black, "leave");
+      expect(white.snapshot.hostId).toBe(white.snapshot.players[0].id);
+      await h.send(white, "set-mode", { mode: "enhanced" });
+      expect(white.snapshot.mode).toBe("enhanced");
+    }
+  });
+
+  it("rejects free abilities, Classic abilities, forged targets, and out-of-turn abilities", async () => {
+    for (const mode of ["classic", "enhanced"] as const) {
+      const h = await harness();
+      const { black, white } = await h.pair(true, mode);
+      const before = black.snapshot;
+      await h.send(black, "ability", { ability: "undo" });
+      expect(black.rejection).toMatchObject({ code: "invalid-ability" });
+      await h.send(white, "ability", { ability: "shield", target: 27 });
+      expect(white.rejection).toMatchObject({ code: "not-your-turn" });
+      for (const payload of [{ ability: "undo", target: 27 }, { ability: "shield", target: 64 }, { ability: "shield", target: 27, player: 2 }, { ability: "corner" }, { ability: "wild", target: 27 }]) {
+        await h.send(black, "ability", payload);
+        expect(black.rejection).toMatchObject({ code: "invalid-request" });
+      }
+      expect(black.snapshot).toEqual(before);
+    }
+  });
+
+  it("runs a full Enhanced match with all abilities, idempotent Undo, and persisted reconnects", async () => {
+    let h = await harness();
+    let { black, white } = await h.pair(true, "enhanced");
+    let game = createRulesGame("enhanced");
+    const used = new Set<Ability>();
+    let actions = 0;
+    while (game.turn !== null) {
+      const color = game.turn;
+      const socket = color === 1 ? black : white;
+      let ability: Ability | null = null;
+      let target: number | undefined;
+      if (!game.abilityUsed) {
+        if (game.canUndo[color] && !used.has("undo")) ability = "undo";
+        else if (game.tokens[color].shield && !used.has("shield")) { ability = "shield"; target = game.board.indexOf(color); }
+        else if (game.tokens[color].corner && !used.has("corner")) {
+          target = [0, 7, 56, 63].find(index => game.board[index] === 0);
+          if (target !== undefined) ability = "corner";
+        }
+      }
+      if (ability) {
+        const before = socket.snapshot;
+        const accepted = await h.send(socket, "ability", { ability, ...(target !== undefined ? { target } : {}) });
+        game = useRulesAbility(game, ability, target);
+        used.add(ability);
+        const after = socket.snapshot;
+        expect(after.revision).toBe(before.revision + 1);
+        expect(after.rules.abilityUsed).toBe(true);
+        await h.raw(socket, accepted);
+        expect(socket.snapshot).toEqual(after);
+        await h.send(socket, "ability", { ability, ...(target !== undefined ? { target } : {}) });
+        expect(socket.rejection).toMatchObject({ code: "invalid-ability" });
+        expect(socket.snapshot).toEqual(after);
+        // A restart must preserve the spent token, all targets, and the private undo state.
+        h = await harness(h.storage);
+        black = await h.connect(); await h.join(black, BLACK_TOKEN, false);
+        white = await h.connect(); await h.join(white, WHITE_TOKEN, false);
+        await h.raw(color === 1 ? black : white, accepted);
+        expect(black.snapshot.board).toEqual(after.board);
+        expect(black.snapshot.rules).toEqual(after.rules);
+      } else {
+        const move = getRulesLegalMoves(game)[0];
+        await h.send(socket, "move", { index: move.index });
+        game = playRulesMove(game, move.index);
+      }
+      expect(black.snapshot.board).toEqual(game.board);
+      expect(black.snapshot.rules).toEqual(projectRulesGame(game));
+      expect(black.snapshot).toEqual(white.snapshot);
+      expect(isMatchSnapshot(black.snapshot)).toBe(true);
+      expect(JSON.stringify(black.snapshot)).not.toMatch(/privateState|claimed|spent|tokenHashes|history/);
+      expect(JSON.stringify(black.snapshot).length).toBeLessThan(10_000);
+      expect(++actions).toBeLessThan(150);
+      vi.setSystemTime(Date.now() + 1_000);
+    }
+    expect([...used].sort()).toEqual(["corner", "shield", "undo"]);
+    expect(black.snapshot.phase).toBe("finished");
+    expect(black.snapshot.moveCount).toBe(60);
+  });
+
+  it("migrates an existing version-two room as Classic without losing its board or seat", async () => {
+    const h = await harness();
+    const { black } = await h.pair();
+    const accepted = await h.send(black, "move", { index: 19 });
+    const old = black.snapshot;
+    const stored = h.storage.values.get("match-v2") as Record<string, unknown>;
+    const legacySnapshot = { ...old } as Partial<MatchSnapshot>;
+    delete legacySnapshot.mode; delete legacySnapshot.rules; delete legacySnapshot.hostId;
+    delete stored.game;
+    h.storage.values.set("match-v2", { ...stored, schema: 2, snapshot: legacySnapshot });
+    const restarted = await harness(h.storage);
+    const returned = await restarted.connect(); await restarted.join(returned, BLACK_TOKEN, false);
+    expect(returned.snapshot.board).toEqual(old.board);
+    expect(returned.snapshot.matchId).toBe(old.matchId);
+    expect(returned.snapshot.mode).toBe("classic");
+    expect(returned.snapshot.rules.canUndo).toEqual({ 1: false, 2: false });
+    expect(returned.snapshot.players[0].id).toBe(old.players[0].id);
+    await restarted.raw(returned, accepted);
+    expect(returned.snapshot.moveCount).toBe(1);
+    expect(h.storage.values.get("match-v2")).toMatchObject({ schema: 3, game: { mode: "classic" } });
+  });
+
+  it("sends an explicit new-version rejection to old clients before any room state", async () => {
+    const h = await harness();
+    const oldClient = await h.connect();
+    await h.join(oldClient, BLACK_TOKEN, true, { version: 2 });
+    expect(oldClient.messages).toEqual([expect.objectContaining({ version: 3, type: "rejected", message: expect.stringContaining("Reload the game") })]);
+    expect(h.storage.values.size).toBe(0);
+  });
+
   it("requires explicit creation and a valid room code", async () => {
     const h = await harness();
     const stranger = await h.connect();
@@ -185,6 +340,29 @@ describe("authoritative PartyKit rooms", () => {
     await h.send(white, "move", { index: 18, version: 1 });
     expect(white.rejection).toMatchObject({ code: "invalid-request" });
     expect(white.snapshot.board).toEqual(moved.board);
+  });
+
+  it("rejects an evicted command receipt by its old revision without applying it twice", async () => {
+    const h = await harness();
+    const { black, white } = await h.pair(false);
+    const first = await h.send(black, "set-mode", { mode: "enhanced" });
+    // Waiting-room changes can exceed the receipt cache without placing a pill.
+    for (let index = 0; index < MAX_ACCEPTED_REQUESTS; index++) {
+      vi.setSystemTime(Date.now() + 1_000);
+      await h.send(black, "set-mode", { mode: index % 2 ? "enhanced" : "classic" });
+    }
+    const before = black.snapshot;
+    const stored = h.storage.values.get("match-v2") as { accepted: { requestId: string }[] };
+    expect(stored.accepted).toHaveLength(MAX_ACCEPTED_REQUESTS);
+    expect(stored.accepted.some(receipt => receipt.requestId === first.requestId)).toBe(false);
+    await h.raw(black, first);
+    expect(black.rejection).toMatchObject({ code: "stale-revision" });
+    expect(black.snapshot).toEqual(before);
+    expect(white.snapshot).toEqual(before);
+    await h.send(black, "ready");
+    await h.send(white, "ready");
+    expect(black.snapshot.phase).toBe("playing");
+    expect(black.snapshot.mode).toBe("enhanced");
   });
 
   it("serializes concurrent writes and never broadcasts a move before it is saved", async () => {

@@ -49,6 +49,34 @@ afterEach(() => {
 });
 
 describe("saved leaderboard queue", () => {
+  it("does not queue or send Enhanced results through either submission entry point", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const api = await import("../src/lib/leaderboard");
+    await api.enqueueResult(profile, { ...result("enhanced-new"), mode: "enhanced" });
+    await api.submitResult(profile, { ...result("enhanced-alias"), mode: "enhanced" });
+    await api.flushPendingResults();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(store.has(queueKey)).toBe(false);
+    expect(store.has("flip.identity.local")).toBe(false);
+  });
+
+  it("ignores saved Enhanced entries while still sending Classic and legacy results", async () => {
+    store.set("flip.identity.local", JSON.stringify({ id: "one-player", token: "token" }));
+    store.set(queueKey, JSON.stringify([
+      { profile, result: { ...result("enhanced-saved"), mode: "enhanced" } },
+      { profile, result: { ...result("classic-saved"), mode: "classic" } },
+      { profile, result: result("legacy-saved") },
+    ]));
+    const fetchMock = vi.fn(async (_url: string, _options: RequestInit) => json({ duplicate: false }));
+    vi.stubGlobal("fetch", fetchMock);
+    const api = await import("../src/lib/leaderboard");
+    await api.flushPendingResults();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls.map(([, options]) => JSON.parse(String(options.body)).match.id)).toEqual(["classic-saved", "legacy-saved"]);
+    expect(JSON.parse(store.get(queueKey)!)).toEqual([]);
+  });
+
   it("saves before sending and restores an offline result after a page reload", async () => {
     const fetchMock = vi.fn(async () => {
       expect(JSON.parse(store.get(queueKey)!)[0].result.id).toBe(

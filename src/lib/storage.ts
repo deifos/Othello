@@ -25,6 +25,7 @@ export interface Profile {
   styleId: string;
 }
 export interface MatchResult {
+  mode?: "classic" | "enhanced";
   id: string;
   date: string;
   black: number;

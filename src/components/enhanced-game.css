@@ -1,0 +1,57 @@
+.mode-picker { border: 0; padding: 0; margin: 0 0 24px; min-width: 0; text-align: left; }
+.mode-picker legend { font-size: 17px; font-weight: 800; padding: 0; margin-bottom: 12px; }
+.mode-options { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.mode-option { position: relative; display: flex; align-items: center; gap: 10px; padding: 17px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); cursor: pointer; }
+.mode-option.selected { border-color: var(--green); background: color-mix(in srgb,var(--panel) 88%,#a6bf75); box-shadow: inset 0 0 0 1px var(--green); }
+.mode-option input { accent-color: var(--green); flex-shrink: 0; }
+.mode-option > svg { color: var(--green); flex-shrink: 0; }
+.mode-option strong,.mode-option small { display: block; }
+.mode-option small { font-size: 11px; color: var(--muted); line-height: 1.5; margin-top: 3px; }
+.mode-picker:disabled .mode-option { cursor: default; }
+.mode-rules { margin-top: 15px; padding: 4px 4px 0; font-size: 12px; line-height: 1.65; }
+.mode-rules p { margin: 7px 0; }
+.mode-rules p strong,.mode-rules p span { display: block; }
+.mode-rules p span,.mode-rules > small { color: var(--muted); }
+.mode-rules > small { display: block; margin-top: 13px; font-size: 11px; }
+.mode-rules details { margin-top: 10px; }
+.mode-rules summary { cursor: pointer; font-weight: 700; }
+.cpu-setup { max-width: 760px; margin: 30px auto 65px; padding: clamp(24px,5vw,48px); background: var(--panel); border: 1px solid var(--line); border-radius: 25px; }
+.cpu-setup h1 { font-family: "Fredoka",sans-serif; font-weight: 500; font-size: clamp(30px,4vw,43px); margin: 10px 0; }
+.cpu-setup > p { color: var(--muted); margin: 0 0 25px; }
+.cpu-setup .button { margin-top: 22px; width: 100%; }
+.match-setup-fields { margin-top: 18px; }
+.room-mode { max-width: 650px; margin: 22px auto; }
+.room-mode > p { font-size: 12px; color: var(--muted); }
+.ability-panel { min-width: 0; padding: 15px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); }
+.game-tools.enhanced-tools { grid-template-columns: 1fr; }
+.ability-heading { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 12px; }
+.ability-heading > svg { color: #b78a27; }
+.ability-heading > span { margin-left: auto; color: var(--muted); font-size: 8px; letter-spacing: .8px; }
+.ability-buttons { display: grid; gap: 7px; }
+.ability-button { display: flex; gap: 9px; align-items: center; min-height: 43px; border: 1px solid var(--line); background: var(--soft); border-radius: 10px; padding: 8px 10px; color: var(--ink); font: inherit; font-size: 12px; cursor: pointer; }
+.ability-button b { margin-left: auto; min-width: 23px; border-radius: 50%; text-align: center; background: var(--panel); }
+.ability-button.selected { border-color: var(--green); background: color-mix(in srgb,var(--panel) 80%,#a6bf75); }
+.ability-button:disabled { opacity: .55; cursor: default; }
+.ability-button:not(:disabled):hover { border-color: var(--green); }
+.ability-reward { margin: 0 0 11px; font-size: 12px; font-weight: 800; color: var(--green-dark); }
+.ability-footnote,.opponent-tokens { color: var(--muted); font-size: 10px; line-height: 1.65; margin: 10px 0 0; }
+.ability-instruction { margin-top: 12px; font-size: 12px; }
+.ability-instruction p { margin: 0 0 8px; }
+.ability-instruction .text-link { font-size: 12px; }
+.flippocalypse-banner { display: flex; align-items: center; gap: 8px; padding: 13px; margin: -15px -15px 15px; border-radius: 16px 16px 0 0; background: linear-gradient(115deg,#fff2d2,#ffe4aa); color: #a13b15; }
+.flippocalypse-banner strong,.flippocalypse-banner div span { display: block; }
+.flippocalypse-banner strong { font-family: "Fredoka",sans-serif; font-size: 18px; font-weight: 500; }
+.flippocalypse-banner div span { font-size: 10px; margin-top: 3px; }
+.flippocalypse-banner > span { margin-left: auto; color: #d49415; font-size: 24px; }
+[data-theme="dark"] .mode-option > svg,[data-theme="dark"] .ability-reward { color: #c6daa0; }
+[data-theme="dark"] .flippocalypse-banner { background: #513d23; color: #ffe3a2; }
+@media(max-width:740px) {
+  .ability-panel { width: 100%; order: 1; padding: 12px; }
+  .ability-heading { margin-bottom: 9px; }
+  .ability-buttons { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; }
+  .ability-button { display: grid; grid-template-columns: 1fr auto; min-width: 0; gap: 4px; padding: 8px; }
+  .ability-button > span { grid-column: 1 / -1; grid-row: 2; font-size: 11px; text-align: left; }
+  .ability-button > b { grid-column: 2; grid-row: 1; }
+  .flippocalypse-banner { margin: -12px -12px 12px; }
+}
+@media(max-width:640px) { .mode-options { gap: 8px; } .mode-option { padding: 13px 9px; gap: 6px; } .mode-option > svg { display: none; } .mode-option strong { font-size: 14px; } .mode-option small { font-size: 10px; } }

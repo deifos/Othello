@@ -1,4 +1,5 @@
 import { createUISFX, type CueName, type UISFXPlayer } from "uisfx";
+import { createFireVoice } from "./fireSound";
 
 export type SoundStyle = "dreamy" | "zen";
 export const isSoundStyle = (value: unknown): value is SoundStyle =>
@@ -23,7 +24,7 @@ const cues = {
   bubble: "expand",
   pop: "snap",
 } satisfies Record<string, CueName>;
-type GameSound = keyof typeof cues;
+type GameSound = keyof typeof cues | "fire";
 
 let player: UISFXPlayer | undefined;
 let enabled = true;
@@ -33,6 +34,21 @@ let unlocking: Promise<boolean> | undefined;
 let generation = 0;
 let request = 0;
 let warming: AbortController | undefined;
+let context: AudioContext | undefined;
+let stopFire: (() => void) | undefined;
+let lastFireAt = -Infinity;
+
+function stopFireSound() {
+  stopFire?.();
+  stopFire = undefined;
+}
+
+function createSharedContext() {
+  const Constructor = globalThis.AudioContext ??
+    (globalThis as typeof globalThis & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  try { return Constructor ? new Constructor({ latencyHint: "interactive" }) : undefined; }
+  catch { return undefined; }
+}
 
 function audible() {
   return enabled && typeof document !== "undefined" && !document.hidden;
@@ -52,7 +68,10 @@ export function unlockGameAudio(): Promise<boolean> {
   if (!audible()) return Promise.resolve(false);
   if (unlocking) return unlocking;
   try {
-    player ??= createUISFX({ pack: style, enabled, volume: 0.65, maxVoices: 4 });
+    if (!player) {
+      context ??= createSharedContext();
+      player = createUISFX({ pack: style, enabled, volume: 0.65, maxVoices: 4, context });
+    }
     const current = player;
     unlocking = current.unlock().then((unlocked) => {
       if (player !== current) return false;
@@ -76,6 +95,7 @@ export function configureGameAudio(nextEnabled: boolean, nextStyle: SoundStyle) 
   style = nextStyle;
   generation += 1;
   warming?.abort();
+  stopFireSound();
   try {
     player?.stopAll();
     player?.setPack(style);
@@ -86,7 +106,7 @@ export function configureGameAudio(nextEnabled: boolean, nextStyle: SoundStyle) 
   }
 }
 
-function play(cue: CueName, previewStyle?: SoundStyle) {
+function play(cue: CueName | "fire", previewStyle?: SoundStyle) {
   if (!audible() || !player) return;
   const current = player;
   const token = ++request;
@@ -98,7 +118,15 @@ function play(cue: CueName, previewStyle?: SoundStyle) {
       token !== request || performance.now() - requestedAt > 250
     ) return;
     try {
+      if (cue === "fire") {
+        if (!context || performance.now() - lastFireAt < 500) return;
+        stopFireSound();
+        stopFire = createFireVoice(context, style);
+        if (stopFire) lastFireAt = performance.now();
+        return;
+      }
       if (previewStyle) {
+        stopFireSound();
         current.stopAll();
         current.setPack(previewStyle);
       }
@@ -118,7 +146,7 @@ function play(cue: CueName, previewStyle?: SoundStyle) {
 }
 
 export function playGameSound(event: GameSound) {
-  play(cues[event]);
+  play(event === "fire" ? event : cues[event]);
 }
 
 /** A preview never changes the selected style or turns muted sound back on. */
@@ -136,6 +164,7 @@ export function startGameAudio() {
     if (!document.hidden) return;
     generation += 1;
     warming?.abort();
+    stopFireSound();
     try { player?.stopAll(); } catch { /* Audio is optional. */ }
   };
   document.addEventListener("pointerdown", gesture, true);
@@ -147,10 +176,15 @@ export function startGameAudio() {
     document.removeEventListener("visibilitychange", visibility);
     generation += 1;
     warming?.abort();
+    stopFireSound();
+    lastFireAt = -Infinity;
     const previous = player;
+    const previousContext = context;
     player = undefined;
+    context = undefined;
     ready = false;
     unlocking = undefined;
     try { void previous?.destroy().catch(() => {}); } catch { /* Audio is optional. */ }
+    try { void previousContext?.close().catch(() => {}); } catch { /* Audio is optional. */ }
   };
 }

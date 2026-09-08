@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PartySocketOptions } from "partysocket";
 import { createBoard } from "../src/game/engine";
+import { createRulesGame, getRulesLegalMoves, playRulesMove, projectRulesGame, useRulesAbility, type RulesGame } from "../src/game/enhanced";
 import { PROTOCOL_VERSION, type MatchSnapshot } from "../src/game/protocol";
 import {
   MultiplayerClient, createInviteUrl, getSeatToken, isMatchSnapshot,
@@ -17,14 +18,26 @@ it('uses the current host and port for Cloudflare builds', () => {
 });
 
 function snapshot(overrides: Partial<MatchSnapshot> = {}): MatchSnapshot {
+  const game = createRulesGame(overrides.mode ?? 'classic');
   return {
     roomCode: 'ABC234', matchId: 'match-1', revision: 1, board: createBoard(), turn: null,
+    mode: game.mode, hostId: 'black-seat', rules: { ...projectRulesGame(game), turn: null },
     players: [{ id: 'black-seat', name: 'Little Flipper', styleId: 'classic', color: 1,
       connected: true, ready: false, wantsRematch: false, disconnectedAt: null }],
     phase: 'waiting', result: null, lastMove: null, passed: null, moveCount: 0,
     startedAt: null, endedAt: null, updatedAt: 1_000, serverTime: 1_000,
     ...overrides,
   };
+}
+
+function enhancedSnapshot(game: RulesGame, revision = 1, ownColor = game.turn ?? 1): MatchSnapshot {
+  return snapshot({ mode: "enhanced", rules: projectRulesGame(game), board: game.board, turn: game.turn,
+    lastMove: game.lastMove, passed: game.passed, moveCount: game.moveCount, phase: "playing", startedAt: 1_000, revision,
+    players: [
+      { id: "black-seat", name: "Little Flipper", styleId: "classic", color: ownColor, connected: true, ready: true, wantsRematch: false, disconnectedAt: null },
+      { id: "friend-seat", name: "Friend", styleId: "panda", color: ownColor === 1 ? 2 : 1, connected: true, ready: true, wantsRematch: false, disconnectedAt: null },
+    ],
+  });
 }
 
 class Socket extends EventTarget implements RoomSocket {
@@ -126,6 +139,95 @@ describe('multiplayer connection and command lifecycle', () => {
     }, () => token);
   });
   afterEach(() => { client.suspend(); vi.useRealTimers(); });
+
+  it('sends the selected creation mode and keeps it through a room-code collision', () => {
+    client.createRoom('enhanced');
+    current().open();
+    expect(current().sent[0]).toMatchObject({ type: 'join', mode: 'enhanced', create: true });
+    current().reject('room-exists');
+    expect(sockets).toHaveLength(2);
+    current().open();
+    expect(current().sent[0]).toMatchObject({ type: 'join', mode: 'enhanced', create: true });
+  });
+
+  it('only sends a host mode change in the waiting room and waits for its acknowledgement', () => {
+    const socket = join();
+    client.setMode('classic');
+    expect(socket.sent).toHaveLength(1);
+    client.setMode('enhanced');
+    expect(socket.sent.at(-1)).toMatchObject({ type: 'set-mode', mode: 'enhanced', expectedRevision: 1 });
+    client.ready();
+    expect(socket.sent).toHaveLength(2);
+    socket.ack(snapshot({ mode: 'enhanced', revision: 2 }));
+    expect(client.getSnapshot().pending).toBe(false);
+    expect(client.getSnapshot().snapshot?.mode).toBe('enhanced');
+    socket.ack(enhancedSnapshot(createRulesGame('enhanced'), 3));
+    client.setMode('classic');
+    expect(socket.sent).toHaveLength(2);
+    socket.ack(snapshot({ revision: 4, hostId: 'friend-seat', players: enhancedSnapshot(createRulesGame('enhanced')).players }));
+    client.setMode('enhanced');
+    expect(socket.sent).toHaveLength(2);
+  });
+
+  it('accepts a server Undo with a lower move count but a higher revision, once', () => {
+    let game = createRulesGame('enhanced');
+    while (game.turn && !game.canUndo[game.turn]) game = playRulesMove(game, getRulesLegalMoves(game)[0].index);
+    const color = game.turn!;
+    client.joinRoom('ABC234'); current().open(); current().welcome(enhancedSnapshot(game, 10));
+    const socket = current();
+    client.useAbility('undo');
+    expect(socket.sent.at(-1)).toMatchObject({ type: 'ability', ability: 'undo', expectedRevision: 10 });
+    expect(socket.sent.at(-1)).not.toHaveProperty('target');
+    client.useAbility('undo'); client.move(getRulesLegalMoves(game)[0].index);
+    expect(socket.sent).toHaveLength(2);
+    const undone = useRulesAbility(game, 'undo');
+    expect(undone.moveCount).toBeLessThan(game.moveCount);
+    socket.ack(enhancedSnapshot(undone, 11, color));
+    expect(client.getSnapshot().snapshot?.board).toEqual(undone.board);
+    expect(client.getSnapshot().snapshot?.moveCount).toBe(undone.moveCount);
+    client.useAbility('undo');
+    expect(socket.sent).toHaveLength(2);
+    socket.ack(enhancedSnapshot(game, 10, color));
+    expect(client.getSnapshot().snapshot?.board).toEqual(undone.board);
+  });
+
+  it('checks ability targets, banked tokens, turn ownership, and connection state before sending', () => {
+    let game = createRulesGame('enhanced');
+    while (game.turn && !game.tokens[game.turn].shield) game = playRulesMove(game, getRulesLegalMoves(game)[0].index);
+    const color = game.turn!;
+    const ownCell = game.board.indexOf(color);
+    const enemyCell = game.board.indexOf(color === 1 ? 2 : 1);
+    client.joinRoom('ABC234'); current().open(); current().welcome(enhancedSnapshot(game, 10));
+    const socket = current();
+    client.useAbility('shield', enemyCell); client.useAbility('shield', 64); client.useAbility('shield');
+    client.useAbility('corner', ownCell);
+    expect(socket.sent).toHaveLength(1);
+    const offline = enhancedSnapshot(game, 11);
+    offline.players[1].connected = false;
+    socket.ack(offline);
+    client.useAbility('shield', ownCell);
+    expect(socket.sent).toHaveLength(1);
+    socket.ack(enhancedSnapshot(game, 12, color === 1 ? 2 : 1));
+    client.useAbility('shield', ownCell);
+    expect(socket.sent).toHaveLength(1);
+    socket.ack(enhancedSnapshot(game, 13));
+    client.useAbility('shield', ownCell);
+    expect(socket.sent.at(-1)).toMatchObject({ type: 'ability', ability: 'shield', target: ownCell });
+    client.setOnline(false);
+    client.setOnline(true); current().open(); current().welcome(enhancedSnapshot(game, 14));
+    expect(current().sent.map(command => command.type)).toEqual(['join']);
+    expect(client.getSnapshot().pending).toBe(false);
+  });
+
+  it('stops with a clear update message for an older server instead of reconnecting forever', () => {
+    client.joinRoom('ABC234'); current().open();
+    current().message({ version: 2, type: 'welcome', playerId: 'black-seat', snapshot: snapshot() });
+    expect(client.getSnapshot()).toMatchObject({ status: 'error', pending: false });
+    expect(client.getSnapshot().error).toContain('Reload the page');
+    expect(current().closed).toBe(true);
+    vi.advanceTimersByTime(60_000);
+    expect(sockets).toHaveLength(1);
+  });
 
   it('opens only on request, joins first, and never queues a command before welcome', () => {
     expect(sockets).toHaveLength(0);
