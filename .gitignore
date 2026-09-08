@@ -11,6 +11,7 @@ test-results/
 *.tsbuildinfo
 .partykit/
 .wrangler/
+cloudflare/worker-configuration.d.ts
 .vercel/
 coverage/
 *.log

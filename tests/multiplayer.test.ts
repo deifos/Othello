@@ -11,6 +11,11 @@ const profile = { id: 'public-profile-id', name: 'Little Flipper', styleId: 'cla
 const token = 'a'.repeat(64);
 const endpoint = { host: 'localhost:1999', protocol: 'ws' as const };
 
+it('uses the current host and port for Cloudflare builds', () => {
+  expect(resolvePartyHost('same-origin', false, { hostname: 'localhost', host: 'localhost:8787', protocol: 'http:' })).toEqual({ host: 'localhost:8787', protocol: 'ws' });
+  expect(resolvePartyHost('same-origin', false, { hostname: 'game.example.com', host: 'game.example.com', protocol: 'https:' })).toEqual({ host: 'game.example.com', protocol: 'wss' });
+});
+
 function snapshot(overrides: Partial<MatchSnapshot> = {}): MatchSnapshot {
   return {
     roomCode: 'ABC234', matchId: 'match-1', revision: 1, board: createBoard(), turn: null,

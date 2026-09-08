@@ -33,3 +33,12 @@ jobs:
 
       - name: Build the app
         run: npm run build
+
+      - name: Check Cloudflare types
+        run: npm run check:cloudflare
+
+      - name: Build the Cloudflare app
+        run: npm run build:cloudflare
+
+      - name: Check the Worker bundle
+        run: npx wrangler deploy --dry-run

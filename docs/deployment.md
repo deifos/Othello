@@ -1,7 +1,8 @@
 # Deployment
 
-The website is a Vite static build. Friend rooms run on PartyKit. Practice
-rankings can use PartyKit storage or the separate Node.js/SQLite server.
+The website is a Vite static build. Cloudflare can host the complete game,
+including friend rooms and practice rankings. PartyKit and Node.js are
+alternative hosting options.
 Use your own hosting accounts and service addresses when you deploy a fork.
 
 ## Before deployment
@@ -20,7 +21,57 @@ credentials, local environment files, SQLite data, or PartyKit local storage.
 `VITE_` variables are public build settings. Change them before building and
 rebuild after every change.
 
-## Option 1: PartyKit hosts the complete game
+## Cloudflare: the complete game (live deployment)
+
+The live game is at <https://flipbuddies.vladpalacio.com/>. One Worker serves
+the static files, routes WebSockets to one Durable Object per room, and routes
+`/api/*` to a practice ranking Durable Object. Both classes use SQLite storage.
+No PartyKit service, Node.js server, or separate database is needed in production.
+
+```sh
+npx wrangler login
+npm run types:cloudflare
+npm run check:cloudflare
+npm run dev:cloudflare
+```
+
+Open the local address printed by Wrangler (usually `http://localhost:8787`).
+In another terminal, run `npx tsx scripts/smoke-cloudflare.ts` to test actual
+WebSockets, moves, reconnects, and practice storage. This creates local test data.
+
+For your own fork, change the Worker name and custom domain in `wrangler.jsonc`.
+Your domain must be in your Cloudflare account. If you have several accounts,
+set `CLOUDFLARE_ACCOUNT_ID` to the account that owns that domain. Then run:
+
+```sh
+npm run deploy:cloudflare
+```
+
+Wrangler creates the two Durable Object namespaces and attaches the custom
+domain with HTTPS. Keep the migration history in `wrangler.jsonc`; new changes
+need new migration tags. Do not rename existing classes or bindings without a
+migration plan, as they identify saved data.
+
+The Cloudflare build forces rooms and rankings to use the current website
+origin. It overrides local `VITE_PARTYKIT_HOST` and `VITE_LEADERBOARD_URL` values,
+so the same build works locally and on your custom domain. The standard
+`npm run build` still uses the normal Vite settings for other hosts.
+
+Workers and SQLite Durable Objects have free usage allowances. Static asset
+requests are free. Room sockets use the standard WebSocket API to preserve the
+existing session state, so open rooms consume Durable Object duration even
+between moves. Free limits are shared across your account. Check usage before
+you promote the game to a large audience; free hosting is not unlimited.
+See [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/)
+and [Durable Objects pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/).
+
+Cloudflare starts with its own ranking data. Existing PartyKit or local SQLite
+records are not copied automatically. The live smoke test can check rooms and
+read the API with `npx tsx scripts/smoke-cloudflare.ts https://YOUR-DOMAIN`.
+It does not write practice rankings on a remote host unless you add
+`--write-practice`. Room checks create a temporary private room that expires.
+
+## Alternative 1: PartyKit hosts the complete game
 
 1. Sign in with `npx partykit login`.
 2. Choose a project name in `partykit.json`. Keep the `main` and `parties`
@@ -40,7 +91,7 @@ The last command uploads `dist/` with `--serve dist`. The website and `/api`
 share one origin, so no additional allowed origin is needed. The local Node
 server and a separate database service are not required.
 
-## Option 2: Vercel website with PartyKit services
+## Alternative 2: Vercel website with PartyKit services
 
 First deploy your PartyKit services as described in steps 1–3 above. Then import
 your repository into Vercel and use these settings:

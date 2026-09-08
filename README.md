@@ -3,13 +3,15 @@
 A friendly Othello game with animated pill characters. Play against the CPU,
 invite a friend, and make each move your own with ten character styles.
 
-[Play the demo](https://flip-buddies.deifos.partykit.dev/) ·
+[Play the game](https://flipbuddies.vladpalacio.com/) ·
 [Run locally](#run-locally) · [Deploy your own game](docs/deployment.md) ·
 [Contribute](CONTRIBUTING.md)
 
 ![Flip Buddies home page with a garden scene, animated pill characters, and a playable Othello board](docs/images/flip-buddies.png)
 
-Built with **React 19, TypeScript, Vite, Three.js, and PartyKit**.
+Built with **React 19, TypeScript, Vite, and Three.js**. The live game uses
+**Cloudflare Workers and SQLite Durable Objects**. PartyKit remains available
+for local development and alternative hosting.
 The source code and original game artwork and music use the [MIT license](LICENSE).
 
 ## Features
@@ -80,6 +82,9 @@ Undo is not available in friend matches.
 | `npm run preview` | Inspect the built website locally; separate services are still needed |
 | `npm start` | Serve `dist/` and the SQLite ranking API on port 3001 |
 | `npm run deploy:multiplayer` | Deploy PartyKit services and the current `dist/` website |
+| `npm run dev:cloudflare` | Build and run the complete game on the local Cloudflare runtime |
+| `npm run check:cloudflare` | Generate Cloudflare types and check the Worker |
+| `npm run deploy:cloudflare` | Build and deploy the complete game to Cloudflare |
 
 Run `npm run build` before `npm start`, `npm run preview`, or a deployment.
 The [CI workflow](.github/workflows/ci.yml) runs tests and the build for pushes
@@ -88,10 +93,11 @@ checks and their limits.
 
 ## Deploy your own game
 
-There are two supported arrangements:
+Choose one of these hosting arrangements:
 
 | Hosting | Website | Friend rooms | Practice rankings |
 | --- | --- | --- | --- |
+| Cloudflare (live game) | Workers Static Assets | Durable Object per room | SQLite Durable Object |
 | PartyKit | PartyKit static assets | PartyKit | PartyKit storage |
 | Vercel + PartyKit | Vercel, using the Vite preset | PartyKit | PartyKit storage |
 
@@ -103,7 +109,7 @@ For a Node.js host, `npm start` serves the website and rankings. Keep its SQLite
 database on persistent storage and host friend rooms on PartyKit. See
 [server setup](server/README.md).
 
-Deploy your own PartyKit project for a fork. The public demo address is for
+Deploy your own Cloudflare Worker or PartyKit project for a fork. The public address is for
 playing the demo; it is not the default service for other deployments. Production
 settings belong in your hosting dashboard or an ignored `.env.production.local`.
 Values that start with `VITE_` are visible to visitors. Never put secrets in them.
@@ -119,10 +125,10 @@ Values that start with `VITE_` are visible to visitors. Never put secrets in the
 - Friend matches are unranked. Practice rankings check legal moves, but cannot
   prove who selected them. There is no account sign-in, random matchmaking,
   friend list, or competitive rating system.
-- The current PartyKit practice store is for a small public game: at most 5,000
+- The hosted practice store is for a small public game: at most 5,000
   profiles and 50,000 result receipts. Larger use needs stronger abuse controls
   and a more efficient ranking index.
-- Local SQLite data and hosted PartyKit data are separate. Deployment does not
+- Local SQLite, Cloudflare, and hosted PartyKit data are separate. Deployment does not
   copy local records to the public service.
 
 ## Project guide

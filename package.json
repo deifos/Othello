@@ -22,9 +22,14 @@
     "build": "tsc -b && vite build",
     "start": "tsx server/index.ts",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "vitest run",
+    "test": "vitest run --dir tests",
     "dev:multiplayer": "partykit dev --no-hotkeys",
-    "deploy:multiplayer": "partykit deploy --serve dist"
+    "deploy:multiplayer": "partykit deploy --serve dist",
+    "build:cloudflare": "node scripts/build-cloudflare.mjs",
+    "types:cloudflare": "wrangler types cloudflare/worker-configuration.d.ts",
+    "check:cloudflare": "npm run types:cloudflare && tsc -p tsconfig.cloudflare.json",
+    "dev:cloudflare": "npm run build:cloudflare && wrangler dev",
+    "deploy:cloudflare": "npm run build:cloudflare && npm run check:cloudflare && wrangler deploy"
   },
   "dependencies": {
     "@fontsource/fredoka": "^5.2.5",
@@ -37,6 +42,7 @@
     "uisfx": "^0.4.0"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260907.1",
     "@types/node": "^24.3.0",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
@@ -47,7 +53,8 @@
     "tsx": "^4.20.5",
     "typescript": "~5.9.2",
     "vite": "^7.1.5",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "wrangler": "^4.129.1"
   },
   "overrides": {
     "partykit": {

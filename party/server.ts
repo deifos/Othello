@@ -5,6 +5,8 @@ import { PROTOCOL_VERSION, RECONNECT_GRACE_MS, ROOM_CODE_PATTERN } from "../src/
 import type { ClientCommand, JoinCommand, MatchSnapshot, RejectionCode, ServerMessage } from "../src/game/protocol";
 import { CHARACTER_STYLES } from "../src/styles/characters";
 
+type RoomConnection = Pick<Party.Connection, "id" | "send" | "close">;
+
 const STORAGE_KEY = "match-v2";
 const JOIN_TIMEOUT_MS = 10_000;
 const WAITING_TTL_MS = 30 * 60_000;
@@ -25,7 +27,7 @@ interface StoredMatch {
 }
 
 interface Session {
-  connection: Party.Connection;
+  connection: RoomConnection;
   playerId: string | null;
   joinDeadline: number;
   windowStarted: number;
@@ -74,7 +76,7 @@ export default class OthelloRoom implements Party.Server {
   private sessions = new Map<string, Session>();
   private queue: Promise<unknown> = Promise.resolve();
 
-  constructor(readonly room: Party.Room) {}
+  constructor(readonly room: Pick<Party.Room, "id" | "storage">) {}
 
   static async onFetch(request: Party.Request, lobby: Party.FetchLobby) {
     const url = new URL(request.url);
@@ -135,7 +137,7 @@ export default class OthelloRoom implements Party.Server {
     });
   }
 
-  onConnect(connection: Party.Connection) {
+  onConnect(connection: RoomConnection) {
     return this.serial(async () => {
       if (!ROOM_CODE_PATTERN.test(this.room.id) || this.sessions.size >= MAX_CONNECTIONS) {
         this.send(connection, { version: PROTOCOL_VERSION, type: "rejected", requestId: "", code: "rate-limited", message: "This room has too many connections. Try again shortly.", revision: this.record?.snapshot.revision ?? 0 });
@@ -148,7 +150,7 @@ export default class OthelloRoom implements Party.Server {
     });
   }
 
-  onMessage(message: string | ArrayBuffer | ArrayBufferView, connection: Party.Connection) {
+  onMessage(message: string | ArrayBuffer | ArrayBufferView, connection: RoomConnection) {
     const session = this.sessions.get(connection.id);
     if (!session) return Promise.resolve();
     const now = Date.now();
@@ -198,7 +200,7 @@ export default class OthelloRoom implements Party.Server {
     return pending.finally(() => { session.pendingMessages--; });
   }
 
-  onClose(connection: Party.Connection) {
+  onClose(connection: RoomConnection) {
     // Complete the WebSocket close handshake, including abrupt reloads.
     try { connection.close(1000, "Connection closed"); } catch { /* Already closed. */ }
     return this.serial(async () => {
@@ -219,7 +221,7 @@ export default class OthelloRoom implements Party.Server {
     });
   }
 
-  onError(connection: Party.Connection) {
+  onError(connection: RoomConnection) {
     return this.onClose(connection);
   }
 
@@ -241,7 +243,7 @@ export default class OthelloRoom implements Party.Server {
     return { ...this.record!.snapshot, serverTime: Date.now() };
   }
 
-  private send(connection: Party.Connection, message: ServerMessage) {
+  private send(connection: RoomConnection, message: ServerMessage) {
     try { connection.send(JSON.stringify(message)); } catch { /* onClose handles presence. */ }
   }
 

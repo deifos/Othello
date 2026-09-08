@@ -50,9 +50,10 @@ export function createInviteUrl(code: string, base = window.location.href): stri
 export function resolvePartyHost(
   configured: string | undefined,
   development: boolean,
-  location: { hostname: string; protocol: string },
+  location: { hostname: string; protocol: string; host?: string },
 ): PartyEndpoint | null {
   const value = configured?.trim();
+  if (value === 'same-origin') return { host: location.host ?? location.hostname, protocol: location.protocol === 'https:' ? 'wss' : 'ws' };
   if (!value) return development
     ? { host: `${location.hostname.includes(':') ? `[${location.hostname.replace(/^\[|\]$/g, '')}]` : location.hostname}:1999`, protocol: location.protocol === 'https:' ? 'wss' : 'ws' }
     : null;

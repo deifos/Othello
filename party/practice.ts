@@ -50,7 +50,7 @@ function newToken() {
     .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-async function readJson(request: Party.Request) {
+async function readJson(request: Pick<Party.Request, "method" | "url" | "headers" | "body">) {
   if (!/^application\/json(?:;|$)/i.test(request.headers.get("content-type") ?? "")) throw new HttpError(415, "Use application/json.");
   if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY_BYTES) throw new HttpError(413, "The request is too large.");
   if (!request.body) throw new HttpError(400, "The JSON is not valid.");
@@ -101,7 +101,7 @@ export default class PracticeRankings implements Party.Server {
   private queue: Promise<unknown> = Promise.resolve();
   private inFlight = 0;
 
-  constructor(readonly room: Party.Room) {}
+  constructor(readonly room: Pick<Party.Room, "id" | "storage" | "env">, private readonly storageName = "partykit") {}
 
   private serial<T>(work: () => Promise<T>): Promise<T> {
     const next = this.queue.then(work);
@@ -109,7 +109,7 @@ export default class PracticeRankings implements Party.Server {
     return next;
   }
 
-  async onRequest(request: Party.Request): Promise<Response> {
+  async onRequest(request: Pick<Party.Request, "method" | "url" | "headers" | "body">): Promise<Response> {
     const headers = new Headers({ "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "same-origin" });
     const json = (status: number, value: unknown) => new Response(request.method === "HEAD" ? null : JSON.stringify(value), { status, headers });
     // There is exactly one public practice board, even when the party URL is called directly.
@@ -138,7 +138,7 @@ export default class PracticeRankings implements Party.Server {
         headers.set("Access-Control-Max-Age", "600");
         return new Response(null, { status: 204, headers });
       }
-      if (pathname === "/api/health" && ["GET", "HEAD"].includes(request.method)) return json(200, { ok: true, mode: "practice", storage: "partykit" });
+      if (pathname === "/api/health" && ["GET", "HEAD"].includes(request.method)) return json(200, { ok: true, mode: "practice", storage: this.storageName });
       if (pathname === "/api/leaderboard" && request.method === "GET") {
         const period = url.searchParams.get("period") ?? "global";
         if (!["global", "weekly", "monthly"].includes(period)) throw new HttpError(400, "Choose a valid ranking period.");
