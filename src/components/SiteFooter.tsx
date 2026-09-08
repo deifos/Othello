@@ -125,6 +125,10 @@ export function InformationContent({
     privacy: (
       <>
         <p>
+          This website uses Google Analytics to measure visits and website use.
+          Google Analytics can use cookies and browser identifiers for these measurements.
+        </p>
+        <p>
           Your browser saves your profile, settings, current match, and match
           history on this device.
         </p>
