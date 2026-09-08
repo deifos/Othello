@@ -49,7 +49,7 @@ export default function SiteFooter({
 }
 
 export const informationTitles: Record<InformationPage, string> = {
-  about: "Small pieces. Big personality.",
+  about: "A simple game. Not an easy one.",
   privacy: "Your privacy",
   terms: "About this preview",
   multiplayer: "A place for you and a friend.",
