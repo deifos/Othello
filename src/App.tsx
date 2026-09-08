@@ -17,6 +17,7 @@ import {
   ShoppingBag,
   Lightbulb,
   Medal,
+  Menu,
   Moon,
   Music2,
   Play,
@@ -207,6 +208,8 @@ const difficultyLabels = {
   hard: "Think it through",
 };
 export default function App() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileMenuButton = useRef<HTMLButtonElement>(null);
   const [page, setPage] = useState<Page>(getPage);
   const [profile, setProfile] = useState(loadProfile);
   const [results, setResults] = useState(loadResults);
@@ -413,15 +416,23 @@ export default function App() {
       >
         Skip to content
       </a>
-      <header className="site-header">
+      <header className={`site-header ${mobileMenuOpen ? "mobile-menu-open" : ""}`} onKeyDown={(event) => {
+        if (event.key === "Escape" && mobileMenuOpen) {
+          setMobileMenuOpen(false);
+          mobileMenuButton.current?.focus();
+        }
+      }}>
         <button
           className="logo-button"
-          onClick={() => navigate("home")}
+          onClick={() => { setMobileMenuOpen(false); navigate("home"); }}
           aria-label="Flip Buddies home"
         >
           <Logo />
         </button>
-        <nav aria-label="Main navigation">
+        <button ref={mobileMenuButton} className="mobile-menu-toggle" aria-label={mobileMenuOpen ? "Close menu" : "Open menu"} aria-expanded={mobileMenuOpen} aria-controls="main-navigation header-controls" onClick={() => setMobileMenuOpen(open => !open)}>
+          {mobileMenuOpen ? <X size={23} /> : <Menu size={23} />}
+        </button>
+        <nav id="main-navigation" aria-label="Main navigation" onClick={() => setMobileMenuOpen(false)}>
           <button
             className={page === "home" || page === "play" ? "active" : ""}
             onClick={() => navigate("home")}
@@ -458,7 +469,7 @@ export default function App() {
             Shop
           </button>
         </nav>
-        <div className="header-actions">
+        <div className="header-actions" id="header-controls">
           <button
             className={`music-trigger ${music.status === "playing" ? "is-playing" : ""}`}
             aria-label="Music settings"

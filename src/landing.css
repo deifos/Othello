@@ -728,3 +728,78 @@
     margin-top: clamp(148px, 17vh, 172px);
   }
 }
+.mobile-menu-toggle { display: none; }
+@media (max-width: 740px) {
+  .app-shell .site-header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 44px;
+    align-items: center;
+    min-height: 72px !important;
+    padding: 10px 0 !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+  }
+  .app-shell[data-page="play"] .site-header { padding-inline: 12px !important; }
+  .mobile-menu-toggle {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    color: var(--green);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+  }
+  .site-header > .logo-button { justify-self: start; }
+  .app-shell .site-header nav, .app-shell .site-header .header-actions { display: none !important; }
+  .app-shell .site-header.mobile-menu-open nav {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-column: 1 / -1;
+    width: 100%;
+    padding: 8px !important;
+    gap: 4px !important;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: visible;
+    order: initial !important;
+  }
+  .app-shell .site-header.mobile-menu-open nav button {
+    justify-content: flex-start;
+    min-height: 44px;
+    padding: 10px !important;
+    font-size: 13px !important;
+  }
+  .app-shell .site-header.mobile-menu-open .header-actions {
+    display: flex !important;
+    grid-column: 1 / -1;
+    justify-content: space-between;
+    padding: 6px 10px;
+  }
+  .site-header.mobile-menu-open .theme-switch button { width: 44px !important; height: 44px !important; }
+  .landing-hero { min-height: 0; }
+  .landing-hero-copy { padding: 24px 22px 220px; }
+  .landing-hero-copy > p { margin-top: 18px; }
+  .landing-hero-actions { margin-top: 16px; }
+  .landing-love { margin-top: 12px; }
+  .landing-garden { width: 125%; right: -8%; bottom: -8px; }
+  .landing-footer.site-footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 8px !important;
+    padding: 16px !important;
+    width: 100%;
+  }
+  .site-footer .footer-brand { width: 100%; justify-content: center; gap: 6px; }
+  .footer-brand .logo-button { margin-right: auto; }
+  .footer-creator { justify-self: center; }
+  .footer-links { justify-content: center; gap: 24px; }
+}
+@media (max-width: 360px) {
+  .site-footer .footer-brand { gap: 2px; }
+  .footer-brand .wordmark { font-size: 14px !important; }
+  .landing-hero-copy { padding-inline: 18px; }
+  .landing-hero-actions .button { flex: 1 1 100%; }
+}
