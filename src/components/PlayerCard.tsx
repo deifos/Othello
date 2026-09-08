@@ -63,6 +63,12 @@ export default function PlayerCard({
           <span>pills</span>
         </div>
         <span className="player-name">{name}</span>
+        <div className={`player-turn-status ${reducedMotion ? "no-motion" : ""}`} role="status">
+          {active && !outcome && <>
+            {!you && <span className="thinking-dots" aria-hidden="true"><i /><i /><i /></span>}
+            <span>{you ? "Your turn" : "Thinking…"}</span>
+          </>}
+        </div>
         <div className="winning-slot" aria-live="polite">
           {winning && <span className={`winning-tag ${reducedMotion ? "no-motion" : ""}`}>Winning</span>}
         </div>
