@@ -6,6 +6,7 @@ export default function PlayerCard({
   color,
   score,
   active,
+  winning = false,
   styleId,
   you = false,
   opponentLabel = "CPU",
@@ -16,6 +17,7 @@ export default function PlayerCard({
   color: "black" | "white";
   score: number;
   active: boolean;
+  winning?: boolean;
   styleId: string;
   you?: boolean;
   opponentLabel?: string;
@@ -61,8 +63,11 @@ export default function PlayerCard({
           <span>pills</span>
         </div>
         <span className="player-name">{name}</span>
+        <div className="winning-slot" aria-live="polite">
+          {winning && <span className={`winning-tag ${reducedMotion ? "no-motion" : ""}`}>Winning</span>}
+        </div>
       </div>
-      <div className="score-track">
+      <div className="score-track" aria-hidden="true">
         {Array.from({ length: 8 }, (_, i) => (
           <span
             key={i}

@@ -180,7 +180,7 @@
   background: linear-gradient(140deg, #6a6c60, #34382f);
 }
 .preview-player-white .preview-score-dots .filled {
-  border-color: #b5ad9b;
+  border: 2px solid #716b59;
   background: #faf5e9;
 }
 .preview-stat {

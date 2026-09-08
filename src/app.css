@@ -971,9 +971,30 @@ button svg {
   border-color: #474940;
 }
 .score-track .filled.white {
-  background: radial-gradient(circle at 35% 25%, #fffef7, #e6dfd0);
-  border-color: #cfc7b7;
+  background: radial-gradient(circle at 35% 25%, #ffffff, #e1d8c5);
+  border: 2px solid #716b59;
+  box-shadow: 0 1px 2px #403b3526;
 }
+.winning-slot { min-height: 23px; margin-top: 5px; perspective: 160px; }
+.winning-tag {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: #e6edc9;
+  color: #3e521f;
+  border: 1px solid #a6b66d;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 16px;
+  animation: winning-tag-in 240ms ease-out both;
+}
+@keyframes winning-tag-in {
+  from { opacity: 0; transform: translateY(-4px) rotateX(-65deg); }
+  to { opacity: 1; transform: translateY(0) rotateX(0); }
+}
+.winning-tag.no-motion { animation: none; }
+@media (prefers-reduced-motion: reduce) { .winning-tag { animation: none; } }
+[data-theme="dark"] .winning-tag { background: #354724; color: #e3efb9; border-color: #829652; }
 .match-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;

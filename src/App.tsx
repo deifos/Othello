@@ -878,6 +878,7 @@ function GameView({
             name={profile.name}
             color="black"
             score={score.black}
+            winning={!state.finished && score.black > score.white}
             active={state.turn === 1}
             styleId={profile.styleId}
             outcome={humanOutcome}
@@ -889,6 +890,7 @@ function GameView({
             name="The little thinker"
             color="white"
             score={score.white}
+            winning={!state.finished && score.white > score.black}
             active={state.turn === 2}
             styleId={profile.styleId}
             outcome={cpuOutcome}
