@@ -236,6 +236,7 @@
   display: none;
 }
 .landing-footer.site-footer {
+  flex-wrap: wrap;
   min-height: 70px;
   padding: 12px 20px !important;
   color: #7e7060;
@@ -269,6 +270,27 @@
 .footer-x-link:hover {
   color: var(--green);
   background: var(--soft);
+}
+.footer-creator {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  color: inherit;
+  font-size: 12px;
+  text-decoration: none;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+.footer-creator img {
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--line);
+}
+.footer-creator:hover { color: var(--green); }
+.footer-creator:focus-visible, .footer-x-link:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
 }
 .footer-links {
   display: flex;
