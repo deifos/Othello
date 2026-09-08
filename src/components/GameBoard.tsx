@@ -8,7 +8,7 @@ import { createBoardCelebration } from "../animation/boardCelebration";
 import {
   captureDelay,
   FLIP_MS,
-  MOVE_SETTLE_MS,
+  moveSettleMs,
   PLACEMENT_MS,
   sampleMovePose,
 } from "../animation/moveMotion";
@@ -673,6 +673,7 @@ function makeBoardScene(
       (value, index) => value !== (pills.get(index)?.value ?? 0),
     );
     const isMove = !first && !styleChanged && !removed && added.length === 1;
+    const captures = props.board.map((value, index) => value && pills.has(index) && pills.get(index)!.value !== value ? index : -1).filter(index => index >= 0);
     const now = performance.now();
     if (styleChanged || reduced || boardChanged) {
       motions = [];
@@ -719,7 +720,7 @@ function makeBoardScene(
         motions = motions.filter((motion) => motion.index !== index);
         if (reduced || !isMove) settlePill(pill, index);
         else {
-          const start = now + captureDelay(index, added[0]);
+          const start = now + captureDelay(index, added[0], captures);
           setReaction(pill, "sad", start - now + FLIP_MS, now);
           motions.push({
             index,
@@ -877,6 +878,7 @@ export default function GameBoard(props: GameBoardProps) {
       latestProps.current.onAnimatingChange?.(false);
       return;
     }
+    const captures = props.board.map((value, index) => value && before[index] && value !== before[index] ? index : -1).filter(index => index >= 0);
     const id = ++moveId.current;
     const changes: Record<number, FallbackPillChange> = {};
     props.board.forEach((value, index) => {
@@ -884,14 +886,14 @@ export default function GameBoard(props: GameBoardProps) {
         changes[index] = {
           id: `${id}-${index}`,
           from: before[index],
-          delay: before[index] ? captureDelay(index, added[0]) : 0,
+          delay: before[index] ? captureDelay(index, added[0], captures) : 0,
         };
     });
     setFallbackChanges(webgl ? {} : changes);
     latestProps.current.onAnimatingChange?.(true);
     const timer = setTimeout(
       () => latestProps.current.onAnimatingChange?.(false),
-      MOVE_SETTLE_MS,
+      moveSettleMs(captures.length),
     );
     return () => {
       clearTimeout(timer);

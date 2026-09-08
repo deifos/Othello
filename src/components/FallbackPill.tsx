@@ -8,7 +8,7 @@ import {
 } from "react";
 import PillAvatar from "./PillAvatar";
 import { playGameSound } from "../lib/gameAudio";
-import { FLIP_MS, PLACEMENT_MS, sampleMovePose } from "../animation/moveMotion";
+import { CAPTURE_START_MS, MAX_STAGGER_MS, FLIP_MS, PLACEMENT_MS, sampleMovePose } from "../animation/moveMotion";
 import "./FallbackPill.css";
 
 /** Omit change for a loaded board or undo. A new id starts one move only. */
@@ -258,7 +258,7 @@ export default function FallbackPill({
     };
     cancel.current = stop;
     const delay = Number.isFinite(requestedDelay)
-      ? Math.max(0, Math.min(requestedDelay!, 500))
+      ? Math.max(0, Math.min(requestedDelay!, CAPTURE_START_MS + MAX_STAGGER_MS))
       : 0;
     const capture = from !== 0;
     const duration = capture ? FLIP_MS : PLACEMENT_MS;

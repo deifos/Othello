@@ -1,7 +1,8 @@
 export const PLACEMENT_MS = 460;
 export const FLIP_MS = 480;
 export const CAPTURE_START_MS = 100;
-export const MAX_STAGGER_MS = 96;
+export const CAPTURE_STEP_MS = 140;
+export const MAX_STAGGER_MS = 63 * CAPTURE_STEP_MS;
 export const MOVE_SETTLE_MS = CAPTURE_START_MS + MAX_STAGGER_MS + FLIP_MS;
 export const CPU_THINK_MS = MOVE_SETTLE_MS + 100;
 
@@ -62,13 +63,22 @@ export function sampleMovePose(progress: number, placing: boolean): Pose {
   };
 }
 
-/** Nearby captured pills turn first. The last one still lands before the next turn. */
-export function captureDelay(index: number, placedAt: number) {
-  const distance = Math.max(
-    Math.abs((index % 8) - (placedAt % 8)),
-    Math.abs(Math.floor(index / 8) - Math.floor(placedAt / 8)),
+/** Sort near to far, with a stable tile order for captures at the same distance. */
+export function captureDelay(index: number, placedAt: number, captures?: readonly number[]) {
+  const distance = (tile: number) => Math.max(
+    Math.abs((tile % 8) - (placedAt % 8)),
+    Math.abs(Math.floor(tile / 8) - Math.floor(placedAt / 8)),
   );
-  return (
-    CAPTURE_START_MS + Math.min(MAX_STAGGER_MS, Math.max(0, distance - 1) * 24)
-  );
+  const order = captures
+    ? [...captures].sort((a, b) => distance(a) - distance(b) || a - b).indexOf(index)
+    : distance(index) - 1;
+  return CAPTURE_START_MS + Math.max(0, order) * CAPTURE_STEP_MS;
+}
+
+export function moveSettleMs(captureCount: number) {
+  return Math.max(PLACEMENT_MS, CAPTURE_START_MS + Math.max(0, captureCount - 1) * CAPTURE_STEP_MS + FLIP_MS);
+}
+
+export function boardMoveSettleMs(before: readonly number[], after: readonly number[]) {
+  return moveSettleMs(after.filter((value, index) => value && before[index] && value !== before[index]).length);
 }

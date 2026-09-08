@@ -17,6 +17,7 @@ import {
 import PillAvatar from "./PillAvatar";
 import { playGameSound } from "../lib/gameAudio";
 import "./MatchPreview.css";
+import { moveSettleMs } from "../animation/moveMotion";
 
 const GameBoard = lazy(() => import("./GameBoard"));
 
@@ -79,7 +80,7 @@ export default function MatchPreview({
     setFlipped(move.flips.length);
     setBusy(!reducedMotion);
     if (!reducedMotion)
-      animationTimer.current = setTimeout(() => setBusy(false), 720);
+      animationTimer.current = setTimeout(() => setBusy(false), moveSettleMs(move.flips.length));
   }
 
   function undo() {

@@ -7,7 +7,7 @@ import { RECONNECT_GRACE_MS } from "../game/protocol";
 import type { MatchSnapshot } from "../game/protocol";
 import type { Profile } from "../lib/storage";
 import { playGameSound } from "../lib/gameAudio";
-import { CAPTURE_START_MS, MOVE_SETTLE_MS } from "../animation/moveMotion";
+import { CAPTURE_START_MS, boardMoveSettleMs } from "../animation/moveMotion";
 import PillAvatar from "./PillAvatar";
 import PlayerCard from "./PlayerCard";
 import "./multiplayer.css";
@@ -32,7 +32,7 @@ function useOnlineFeedback(snapshot: MatchSnapshot | null, playerId: string | nu
     if (snapshot.phase === "finished" && before.phase !== "finished") {
       const mine = snapshot.players.find((player) => player.id === playerId);
       const cue = snapshot.result?.winner === null ? "draw" : snapshot.result?.winner === mine?.color ? "win" : "loss";
-      timers.push(setTimeout(() => playGameSound(cue), placed ? MOVE_SETTLE_MS : 0));
+      timers.push(setTimeout(() => playGameSound(cue), placed ? boardMoveSettleMs(before.board, snapshot.board) : 0));
     }
     return () => timers.forEach(clearTimeout);
   }, [snapshot?.matchId, snapshot?.moveCount, snapshot?.phase, playerId]);

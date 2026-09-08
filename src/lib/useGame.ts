@@ -8,7 +8,7 @@ import {
 } from "../game/engine";
 import type { Player } from "../game/engine";
 import { readStored, writeStored } from "./storage";
-import { CAPTURE_START_MS, CPU_THINK_MS, MOVE_SETTLE_MS } from "../animation/moveMotion";
+import { CAPTURE_START_MS, boardMoveSettleMs } from "../animation/moveMotion";
 import { playGameSound } from "./gameAudio";
 export type Difficulty = "easy" | "normal" | "hard";
 interface Snapshot {
@@ -74,6 +74,13 @@ export function useGame(active: boolean, sound: boolean) {
   );
   const [selected, setSelected] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  const previousMotionBoard = useRef(state.board);
+  const motionReadyAt = useRef(0);
+  useEffect(() => {
+    const before = previousMotionBoard.current;
+    previousMotionBoard.current = state.board;
+    motionReadyAt.current = performance.now() + boardMoveSettleMs(before, state.board);
+  }, [state.board]);
   const previousAudioState = useRef(state);
   useEffect(() => {
     const before = previousAudioState.current;
@@ -94,7 +101,7 @@ export function useGame(active: boolean, sound: boolean) {
       const result = state.surrendered || score.black < score.white
         ? "loss"
         : score.black > score.white ? "win" : "draw";
-      timers.push(setTimeout(() => playGameSound(result), placed ? MOVE_SETTLE_MS : 0));
+      timers.push(setTimeout(() => playGameSound(result), placed ? boardMoveSettleMs(before.board, state.board) : 0));
     }
     return () => timers.forEach(clearTimeout);
   }, [state.board, state.id, state.finished, state.started, state.surrendered, active, sound]);
@@ -138,7 +145,7 @@ export function useGame(active: boolean, sound: boolean) {
     let worker: Worker | undefined;
     const id = state.id + ":" + state.moves.length;
     let timer: ReturnType<typeof setTimeout>;
-    const began = performance.now();
+
     let ended = false;
     const finish = (index: number | null) => {
       if (ended) return;
@@ -152,7 +159,7 @@ export function useGame(active: boolean, sound: boolean) {
           if (safeIndex !== null) move(safeIndex, true);
           setBusy(false);
         },
-        Math.max(80, CPU_THINK_MS - (performance.now() - began)),
+        Math.max(80, motionReadyAt.current + 100 - performance.now()),
       );
     };
     try {

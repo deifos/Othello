@@ -5,9 +5,19 @@ import {
   FLIP_MS,
   MOVE_SETTLE_MS,
   sampleMovePose,
+  moveSettleMs,
+  CAPTURE_STEP_MS,
 } from "../src/animation/moveMotion";
 
 describe("move motion contract", () => {
+  it("starts every captured pill in sequence, including equal-distance tiles", () => {
+    const captures = [43, 28, 19, 35, 29];
+    const delays = captures.map(index => captureDelay(index, 27, captures)).sort((a, b) => a - b);
+    for (let i = 1; i < delays.length; i++) expect(delays[i] - delays[i - 1]).toBe(CAPTURE_STEP_MS);
+    expect(captureDelay(28, 27, captures)).toBeLessThan(captureDelay(29, 27, captures));
+    expect(delays.at(-1)! + FLIP_MS).toBe(moveSettleMs(captures.length));
+    expect(moveSettleMs(1)).toBeLessThan(moveSettleMs(5));
+  });
   it("lands at its original position and size", () => {
     for (const placing of [true, false]) {
       const pose = sampleMovePose(1, placing);
