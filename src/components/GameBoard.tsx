@@ -28,6 +28,7 @@ export type GameBoardProps = {
   onSelect: (index: number) => void;
   disabled?: boolean;
   styleId: string;
+  styleIds?: Partial<Record<1 | 2, string>>;
   reducedMotion?: boolean;
   preview?: boolean;
   onAnimatingChange?: (animating: boolean) => void;
@@ -41,7 +42,8 @@ type Pill = {
   backFace: THREE.Mesh;
   frontAccessories: THREE.Group;
   backAccessories: THREE.Group;
-  panda: boolean;
+  accessories: Record<1 | 2, THREE.Group>;
+  pandas: Record<1 | 2, boolean>;
   expression: ExpressionState;
   faceKey: string;
   value: number;
@@ -71,6 +73,8 @@ const TILE_COLORS = ["#779852", "#75964f", "#789853", "#7b9b56"];
 const cellName = (index: number) =>
   `${String.fromCharCode(65 + (index % 8))}${Math.floor(index / 8) + 1}`;
 const isDark = (value: number) => value === 1;
+const playerStyleId = (props: GameBoardProps, value: number) =>
+  getCharacterStyle(props.styleIds?.[value === 1 ? 1 : 2] ?? props.styleId).id;
 
 function tileGeometry(): THREE.ExtrudeGeometry {
   const shape = new THREE.Shape();
@@ -266,7 +270,11 @@ function makeBoardScene(
     !!currentProps?.reducedMotion || motionQuery.matches;
   const paused = () => document.hidden || !visible;
 
-  function makePill(value: number, styleId: string, index: number): Pill {
+  function makePill(
+    value: number,
+    styleIds: Record<1 | 2, string>,
+    index: number,
+  ): Pill {
     const group = new THREE.Group();
     const materials: THREE.Material[] = [];
     const makeMaterial = (color: string, roughness = 0.5) => {
@@ -281,11 +289,6 @@ function makeBoardScene(
     const bodyMaterial = makeMaterial(isDark(value) ? BLACK : WHITE, 0.48);
     bodyMaterial.emissive.set(isDark(value) ? BLACK : WHITE);
     bodyMaterial.emissiveIntensity = isDark(value) ? 0.55 : 0.65;
-    const darkEye = makeMaterial("#242a23", 0.38);
-    const sparkle = makeMaterial("#fffced", 0.28);
-    const blush = makeMaterial("#ed9a85", 0.7);
-    const { accessory, accent } = getCharacterStyle(styleId);
-    const accentMat = makeMaterial(accent);
     const body = new THREE.Mesh(sphereGeometry, bodyMaterial);
     body.scale.set(0.369, 0.232, 0.369);
     body.castShadow = true;
@@ -294,28 +297,15 @@ function makeBoardScene(
     const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
     shadow.rotation.x = -Math.PI / 2;
     shadow.position.y = 0.101;
-    function blob(
-      x: number,
-      y: number,
-      z: number,
-      sx: number,
-      sy: number,
-      sz: number,
-      mat: THREE.Material,
-      castsShadow = false,
-    ) {
-      const mesh = new THREE.Mesh(smallSphereGeometry, mat);
-      mesh.position.set(x, y, z);
-      mesh.scale.set(sx, sy, sz);
-      mesh.castShadow = castsShadow;
-      group.add(mesh);
-      return mesh;
-    }
     const expression = createExpressionState(
       sceneSeed ^ Math.imul(index + 1, 2654435761),
       performance.now(),
     );
-    const panda = accessory === "panda";
+    const pandas = {
+      1: getCharacterStyle(styleIds[1]).accessory === "panda",
+      2: getCharacterStyle(styleIds[2]).accessory === "panda",
+    };
+    const panda = pandas[value === 1 ? 1 : 2];
     const face = new THREE.Mesh(
       faces.geometry("happy", "open", panda, isDark(value)),
       faces.material,
@@ -325,106 +315,136 @@ function makeBoardScene(
     backFace.rotation.x = Math.PI;
     backFace.visible = false;
     group.add(backFace);
-    if (accessory === "leaves") {
-      const leafMat = makeMaterial("#88b34e");
-      const stem = blob(0, 0.104, -0.323, 0.014, 0.02, 0.11, accentMat);
-      stem.rotation.y = -0.12;
-      const left = blob(-0.07, 0.13, -0.344, 0.071, 0.035, 0.13, leafMat, true);
-      left.rotation.y = -0.7;
-      const right = blob(
-        0.065,
-        0.14,
-        -0.379,
-        0.068,
-        0.032,
-        0.12,
-        leafMat,
-        true,
-      );
-      right.rotation.y = 0.65;
-    }
-    if (["bear", "panda", "frog", "bunny"].includes(accessory)) {
-      for (const side of [-1, 1]) {
-        const bunny = accessory === "bunny";
-        const earMat = accessory === "bunny" ? bodyMaterial : accentMat;
-        const ear = blob(
-          side * 0.218,
-          0.055,
-          bunny ? -0.337 : -0.278,
-          bunny ? 0.073 : 0.091,
-          0.077,
-          bunny ? 0.205 : 0.093,
-          earMat,
+    function makeAccessories(accessoryValue: 1 | 2) {
+      const accessoryGroup = new THREE.Group();
+      const { accessory, accent } = getCharacterStyle(styleIds[accessoryValue]);
+      if (accessory === "none") return accessoryGroup;
+      const darkEye = makeMaterial("#242a23", 0.38);
+      const sparkle = makeMaterial("#fffced", 0.28);
+      const blush = makeMaterial("#ed9a85", 0.7);
+      const accentMat = makeMaterial(accent);
+      // Ear colors belong to this side, not the body material that blends during a flip.
+      const bodyMaterial = makeMaterial(isDark(accessoryValue) ? BLACK : WHITE, 0.48);
+      bodyMaterial.emissive.copy(bodyMaterial.color);
+      bodyMaterial.emissiveIntensity = isDark(accessoryValue) ? 0.55 : 0.65;
+      function blob(
+        x: number,
+        y: number,
+        z: number,
+        sx: number,
+        sy: number,
+        sz: number,
+        mat: THREE.Material,
+        castsShadow = false,
+      ) {
+        const mesh = new THREE.Mesh(smallSphereGeometry, mat);
+        mesh.position.set(x, y, z);
+        mesh.scale.set(sx, sy, sz);
+        mesh.castShadow = castsShadow;
+        accessoryGroup.add(mesh);
+        return mesh;
+      }
+      if (accessory === "leaves") {
+        const leafMat = makeMaterial("#88b34e");
+        const stem = blob(0, 0.104, -0.323, 0.014, 0.02, 0.11, accentMat);
+        stem.rotation.y = -0.12;
+        const left = blob(-0.07, 0.13, -0.344, 0.071, 0.035, 0.13, leafMat, true);
+        left.rotation.y = -0.7;
+        const right = blob(
+          0.065,
+          0.14,
+          -0.379,
+          0.068,
+          0.032,
+          0.12,
+          leafMat,
           true,
         );
-        if (bunny) {
-          ear.rotation.y = side * 0.2;
-          const inner = blob(
-            side * 0.224,
-            0.129,
-            -0.36,
-            0.03,
-            0.012,
-            0.13,
-            accentMat,
+        right.rotation.y = 0.65;
+      }
+      if (["bear", "panda", "frog", "bunny"].includes(accessory)) {
+        for (const side of [-1, 1]) {
+          const bunny = accessory === "bunny";
+          const earMat = accessory === "bunny" ? bodyMaterial : accentMat;
+          const ear = blob(
+            side * 0.218,
+            0.055,
+            bunny ? -0.337 : -0.278,
+            bunny ? 0.073 : 0.091,
+            0.077,
+            bunny ? 0.205 : 0.093,
+            earMat,
+            true,
           );
-          inner.rotation.y = side * 0.2;
-        } else if (accessory === "bear")
-          blob(side * 0.218, 0.134, -0.282, 0.048, 0.01, 0.045, blush);
-        else if (accessory === "frog") {
-          blob(side * 0.215, 0.142, -0.29, 0.025, 0.013, 0.027, darkEye);
-          blob(side * 0.209, 0.152, -0.3, 0.008, 0.004, 0.009, sparkle);
+          if (bunny) {
+            ear.rotation.y = side * 0.2;
+            const inner = blob(
+              side * 0.224,
+              0.129,
+              -0.36,
+              0.03,
+              0.012,
+              0.13,
+              accentMat,
+            );
+            inner.rotation.y = side * 0.2;
+          } else if (accessory === "bear")
+            blob(side * 0.218, 0.134, -0.282, 0.048, 0.01, 0.045, blush);
+          else if (accessory === "frog") {
+            blob(side * 0.215, 0.142, -0.29, 0.025, 0.013, 0.027, darkEye);
+            blob(side * 0.209, 0.152, -0.3, 0.008, 0.004, 0.009, sparkle);
+          }
         }
       }
-    }
-    if (accessory === "fox" || accessory === "cat") {
-      for (const side of [-1, 1]) {
-        const ear = new THREE.Mesh(
-          coneGeo,
-          accessory === "fox" ? accentMat : bodyMaterial,
-        );
-        ear.scale.set(0.135, 0.22, 0.1);
-        ear.rotation.x = -Math.PI / 2;
-        ear.rotation.z = side * 0.18;
-        ear.position.set(side * 0.233, 0.07, -0.27);
-        ear.castShadow = true;
-        group.add(ear);
-        blob(side * 0.239, 0.141, -0.284, 0.037, 0.015, 0.05, blush);
+      if (accessory === "fox" || accessory === "cat") {
+        for (const side of [-1, 1]) {
+          const ear = new THREE.Mesh(
+            coneGeo,
+            accessory === "fox" ? accentMat : bodyMaterial,
+          );
+          ear.scale.set(0.135, 0.22, 0.1);
+          ear.rotation.x = -Math.PI / 2;
+          ear.rotation.z = side * 0.18;
+          ear.position.set(side * 0.233, 0.07, -0.27);
+          ear.castShadow = true;
+          accessoryGroup.add(ear);
+          blob(side * 0.239, 0.141, -0.284, 0.037, 0.015, 0.05, blush);
+        }
       }
-    }
-    if (accessory === "flower") {
-      for (let petal = 0; petal < 5; petal++) {
-        const a = (petal / 5) * Math.PI * 2;
-        blob(
-          0.235 + Math.cos(a) * 0.046,
-          0.174,
-          -0.235 + Math.sin(a) * 0.046,
-          0.038,
-          0.022,
-          0.038,
-          accentMat,
-        );
+      if (accessory === "flower") {
+        for (let petal = 0; petal < 5; petal++) {
+          const a = (petal / 5) * Math.PI * 2;
+          blob(
+            0.235 + Math.cos(a) * 0.046,
+            0.174,
+            -0.235 + Math.sin(a) * 0.046,
+            0.038,
+            0.022,
+            0.038,
+            accentMat,
+          );
+        }
+        blob(0.235, 0.203, -0.235, 0.032, 0.014, 0.032, makeMaterial("#f2ce6f"));
       }
-      blob(0.235, 0.203, -0.235, 0.032, 0.014, 0.032, makeMaterial("#f2ce6f"));
-    }
-    if (accessory === "crown") {
-      for (let point = -1; point <= 1; point++) {
-        const crownPoint = new THREE.Mesh(coneGeo, accentMat);
-        crownPoint.scale.set(0.075, 0.16, 0.09);
-        crownPoint.rotation.x = -Math.PI / 2;
-        crownPoint.position.set(point * 0.105, 0.123, -0.31);
-        crownPoint.castShadow = true;
-        group.add(crownPoint);
-        blob(point * 0.105, 0.14, -0.388, 0.025, 0.025, 0.025, accentMat);
+      if (accessory === "crown") {
+        for (let point = -1; point <= 1; point++) {
+          const crownPoint = new THREE.Mesh(coneGeo, accentMat);
+          crownPoint.scale.set(0.075, 0.16, 0.09);
+          crownPoint.rotation.x = -Math.PI / 2;
+          crownPoint.position.set(point * 0.105, 0.123, -0.31);
+          crownPoint.castShadow = true;
+          accessoryGroup.add(crownPoint);
+          blob(point * 0.105, 0.14, -0.388, 0.025, 0.025, 0.025, accentMat);
+        }
+        blob(0, 0.127, -0.243, 0.184, 0.032, 0.037, accentMat);
       }
-      blob(0, 0.127, -0.243, 0.184, 0.032, 0.037, accentMat);
+      return accessoryGroup;
     }
-    const frontAccessories = new THREE.Group();
-    for (const child of [...group.children]) {
-      if (child !== body && child !== face && child !== backFace)
-        frontAccessories.add(child);
-    }
-    const backAccessories = frontAccessories.clone(true);
+    // Keep both player styles ready. Captures turn to the other side without
+    // rebuilding meshes, materials, or the shared face texture during motion.
+    const accessories = { 1: makeAccessories(1), 2: makeAccessories(2) };
+    const frontAccessories = accessories[value === 1 ? 1 : 2];
+    const backAccessories = accessories[value === 1 ? 2 : 1];
     backAccessories.rotation.x = Math.PI;
     backAccessories.visible = false;
     group.add(frontAccessories, backAccessories);
@@ -436,7 +456,8 @@ function makeBoardScene(
       body,
       shadow,
       face,
-      panda,
+      accessories,
+      pandas,
       expression,
       faceKey: "",
       value,
@@ -488,13 +509,13 @@ function makeBoardScene(
       pill.face.geometry = faces.geometry(
         expression,
         blink,
-        pill.panda,
+        pill.pandas[pill.color === 1 ? 1 : 2],
         isDark(pill.color),
       );
       pill.backFace.geometry = faces.geometry(
         expression,
         blink,
-        pill.panda,
+        pill.pandas[pill.value === 1 ? 1 : 2],
         isDark(pill.value),
       );
       pill.faceKey = key;
@@ -603,6 +624,10 @@ function makeBoardScene(
     pill.shadow.scale.setScalar(1);
     pill.face.visible = true;
     pill.backFace.visible = false;
+    pill.frontAccessories = pill.accessories[pill.value === 1 ? 1 : 2];
+    pill.backAccessories = pill.accessories[pill.value === 1 ? 2 : 1];
+    pill.frontAccessories.rotation.x = 0;
+    pill.backAccessories.rotation.x = Math.PI;
     pill.frontAccessories.visible = true;
     pill.backAccessories.visible = false;
     pill.frontAccessories.scale.y = 1;
@@ -635,8 +660,10 @@ function makeBoardScene(
     if (stopped) return;
     stopHops();
     currentProps = props;
-    const styleChanged = currentStyle !== props.styleId;
-    currentStyle = props.styleId;
+    const styleIds = { 1: playerStyleId(props, 1), 2: playerStyleId(props, 2) };
+    const styleKey = `${styleIds[1]}:${styleIds[2]}`;
+    const styleChanged = currentStyle !== styleKey;
+    currentStyle = styleKey;
     const reduced = motionReduced();
     const added = props.board
       .map((value, index) => (value && !pills.has(index) ? index : -1))
@@ -661,7 +688,7 @@ function makeBoardScene(
         removePill(index);
         motions = motions.filter((motion) => motion.index !== index);
       } else if (!pill) {
-        pill = makePill(value, props.styleId, index);
+        pill = makePill(value, styleIds, index);
         pill.group.position.set(
           (index % 8) - 3.5,
           PIECE_Y,
@@ -690,7 +717,7 @@ function makeBoardScene(
         const from = pill.color;
         pill.value = value;
         motions = motions.filter((motion) => motion.index !== index);
-        if (reduced || !isMove) changeColor(pill, value);
+        if (reduced || !isMove) settlePill(pill, index);
         else {
           const start = now + captureDelay(index, added[0]);
           setReaction(pill, "sad", start - now + FLIP_MS, now);
@@ -832,6 +859,8 @@ export default function GameBoard(props: GameBoardProps) {
   const previousBoard = useRef(props.board);
   const moveId = useRef(0);
   const legalMovesKey = props.legalMoves.join(",");
+  const blackStyleId = playerStyleId(props, 1);
+  const whiteStyleId = playerStyleId(props, 2);
 
   useEffect(() => {
     const before = previousBoard.current;
@@ -868,7 +897,7 @@ export default function GameBoard(props: GameBoardProps) {
       clearTimeout(timer);
       latestProps.current.onAnimatingChange?.(false);
     };
-  }, [props.board, props.styleId, props.reducedMotion, webgl]);
+  }, [props.board, blackStyleId, whiteStyleId, props.reducedMotion, webgl]);
 
   useEffect(() => {
     if (!canvasHost.current) return;
@@ -895,7 +924,8 @@ export default function GameBoard(props: GameBoardProps) {
     props.board,
     legalMovesKey,
     props.selected,
-    props.styleId,
+    blackStyleId,
+    whiteStyleId,
     props.disabled,
     props.reducedMotion,
     props.preview,
@@ -1014,7 +1044,8 @@ export default function GameBoard(props: GameBoardProps) {
                             canvasHost.current.dataset.hops = String(fallbackHops.current.size);
                         }}
                         value={value}
-                        styleId={props.styleId}
+                        styleId={value === 1 ? blackStyleId : whiteStyleId}
+                        fromStyleId={fallbackChanges[index]?.from === 1 ? blackStyleId : whiteStyleId}
                         change={fallbackChanges[index]}
                         reducedMotion={props.reducedMotion}
                       />

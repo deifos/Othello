@@ -1,7 +1,21 @@
 node_modules/
 dist/
 data/
-.env
+# Local configuration and credentials. Only templates belong in Git.
+.env*
+!.env.example
+!.env.production.example
+.dev.vars*
 *.local
 test-results/
 *.tsbuildinfo
+.partykit/
+.wrangler/
+.vercel/
+coverage/
+*.log
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+.DS_Store
+Thumbs.db

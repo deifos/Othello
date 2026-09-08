@@ -21,6 +21,7 @@ export type FallbackPillChange = {
 export type FallbackPillProps = {
   value: number;
   styleId: string;
+  fromStyleId?: string;
   reducedMotion?: boolean;
   change?: FallbackPillChange;
   hopRef?: Ref<FallbackPillHandle>;
@@ -107,6 +108,7 @@ const colorName = (value: number) => (value === 1 ? "black" : "white");
 export default function FallbackPill({
   value,
   styleId,
+  fromStyleId,
   reducedMotion = false,
   change,
   hopRef,
@@ -182,7 +184,7 @@ export default function FallbackPill({
 
   useLayoutEffect(() => {
     cancelHop.current();
-  }, [value, styleId, reducedMotion, change?.id]);
+  }, [value, styleId, fromStyleId, reducedMotion, change?.id]);
 
   useEffect(() => () => cancelHop.current(false), []);
 
@@ -351,7 +353,7 @@ export default function FallbackPill({
       stop(false);
       cancel.current = () => {};
     };
-  }, [changeId, from, requestedDelay, value, styleId, reducedMotion]);
+  }, [changeId, from, requestedDelay, value, styleId, fromStyleId, reducedMotion]);
 
   // A stale reaction must never show the wrong color after undo or restoration.
   const move =
@@ -371,7 +373,7 @@ export default function FallbackPill({
         >
           <span className="fallback-pill__side">
             <PillAvatar
-              styleId={styleId}
+              styleId={capturing ? fromStyleId ?? styleId : styleId}
               color={colorName(capturing ? move!.from : value)}
               expression={
                 hopHappy ? "grin" : capturing ? "sad" : move ? "grin" : undefined

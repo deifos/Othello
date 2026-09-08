@@ -46,9 +46,11 @@ use rolling windows of 7 and 30 days, based on the time of first receipt by the
 server. Only players with a recorded match appear. The API returns the first 100
 rows. Ties use wins, fewer games, account creation time, then player ID.
 
-## Multiplayer phase
+## Multiplayer
 
-Use `src/game/protocol.ts` for the versioned transport contract. A future PartyKit
-server must own the board and player turns. It must send verified match results
-to a separate competitive ranking path. Do not accept a local move record as
-proof of a competitive win.
+`party/server.ts` owns the online board and player turns. It uses the versioned
+contract in `src/game/protocol.ts`. Friend matches are unranked and never enter
+this practice API. The public app uses `party/practice.ts` for the same CPU
+practice API with PartyKit storage; the local Node server still uses SQLite.
+See [multiplayer setup](../docs/multiplayer.md). Any future competitive ranking
+path must accept results from the room server, not a client move record.

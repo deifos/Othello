@@ -1,134 +1,167 @@
 # Flip Buddies
 
-A complete local Othello game with cute pill characters. Built with React,
-TypeScript, Vite, and Three.js.
+A friendly Othello game with animated pill characters. Play against the CPU,
+invite a friend, and make each move your own with ten character styles.
 
-## Start
+[Play the demo](https://flip-buddies.deifos.partykit.dev/) ·
+[Run locally](#run-locally) · [Deploy your own game](docs/deployment.md) ·
+[Contribute](CONTRIBUTING.md)
 
-Use Node.js 24 or later.
+![Flip Buddies home page with a garden scene, animated pill characters, and a playable Othello board](docs/images/flip-buddies.png)
+
+Built with **React 19, TypeScript, Vite, Three.js, and PartyKit**.
+The source code and original game artwork and music use the [MIT license](LICENSE).
+
+## Features
+
+- **CPU play:** Three difficulty levels, legal-move hints, undo, surrender,
+  rematch, and a saved match. CPU search runs in a browser worker.
+- **Friend matches:** Private room codes and invite links, ready checks,
+  reconnect support, and rematches that swap colors. The server checks each move.
+- **Complete rules:** Eight capture directions, automatic passes, and correct
+  game endings, including a game that ends before the board is full.
+- **Ten pill styles:** Animated faces, capture flips, small jumps, and result
+  celebrations. Each friend keeps their chosen style.
+- **Practice rankings:** All-time, seven-day, and thirty-day results. The server
+  checks submitted move records. Failed uploads retry when the service returns.
+- **Sound and music:** Two sound styles, five original songs, separate mute and
+  volume controls, and no playback before user input.
+- **Access and display:** Keyboard board controls, phone layouts, light and dark
+  themes, reduced motion, and an HTML board when WebGL is unavailable.
+
+## Run locally
+
+Install **Node.js 24.x** and Git. npm is included with Node.js.
+No hosted account or API key is needed for local play.
 
 ```sh
-npm install
+git clone https://github.com/deifos/Othello.git
+cd Othello
+npm ci
 npm run dev
 ```
 
-Open **http://localhost:5173**. The same command starts the practice ranking API
-on port 3001. The game works if the API is offline. Failed result uploads stay in
-a local queue and are sent when the API is available again.
+Open [localhost:5173](http://localhost:5173). The command starts three services:
 
-```sh
-npm test
-npm run build
-npm start
-```
+| Service | Address | Purpose |
+| --- | --- | --- |
+| Vite | `http://localhost:5173` | Website and browser code |
+| Node.js | `http://localhost:3001` | Local practice rankings, stored in SQLite |
+| PartyKit | `http://localhost:1999` | Local friend rooms |
 
-The production server serves the app and API at **http://localhost:3001**. Keep
-the `data` directory on persistent storage. See [server setup](server/README.md)
-for ports, database paths, and public origins. This project has not been deployed
-to a public host.
+Local defaults work without an environment file. To change them, copy
+[.env.example](.env.example) to `.env.local`. Stop all three services with Ctrl+C.
+For CPU play only, use `npm run dev:web`. Rankings and friend rooms need their
+respective services.
 
-## What works
+## How to play
 
-- Landing page, game page, character collection, instructions, and rankings.
-- Complete 8 × 8 Othello rules, eight capture directions, automatic passes, and
-  correct game endings, including endings before the board is full.
-- Human plays black. The CPU plays white. Three CPU levels use bounded search in
-  a separate browser worker.
-- Select a legal tile, then press **Place pill**. Keyboard users can move across
-  the board with the arrow keys and select a tile with Enter or Space.
-- Undo restores the position before the last human move, including CPU replies.
-- Saved match, profile, character choice, results, and display settings.
-- Surrender, rematch, sound controls, reduced motion, and light or dark theme.
-- UI SFX sounds with Zen as the default and Dreamy as an alternative. Settings
-  includes a preview for each style and saves the selected style and mute state.
-  Cues cover jumps, moves, flips, menus, choices, undo, and match celebrations.
-- Ten character styles. Black and white remain clear in every style.
-- Eight expressions with separate blink and idle schedules. Captured pills look
-  sad, show surprise during the turn, and smile when they land. Player portraits
-  react to score changes and the final result.
-- At the end of a match, the winner's portrait jumps and tosses flowers. The
-  other portrait has a sad face and a small bubble that grows and pops into
-  tears. Draws show two happy faces. These effects pause when hidden or offscreen
-  and stop when reduced motion is on.
-- Click or tap a board pill, side portrait, or picker pill for a small jump.
-  Enter and Space also work. Board hops do not change the selected move or score,
-  and a new move takes priority over the hop.
-- Three.js placement, capture flips, and small particles. Shared geometry,
-  capped pixel density, and rendering only while a scene changes keep work low.
-- Expressions share one face texture. Idle updates are batched on crowded boards;
-  flip motion keeps its smooth frame rate. Hidden and reduced-motion views stop
-  idle animation.
-- Accessible HTML board if WebGL is not available.
-- A persistent practice leaderboard with all-time, rolling seven-day, and rolling
-  thirty-day views. Every submitted move record is checked by the server.
+1. Choose **Play Now** for CPU play, or **Play with Friends** to create a room.
+2. In a friend room, share the invite link or room code. Both players choose
+   **I'm ready**. Use separate browser profiles to test two players on one device.
+3. Select a glowing tile, then choose **Place pill**. A move must trap one or more
+   opponent pieces between the new piece and another piece of your color.
+4. Black moves first. If a player has no legal move, their turn passes. When
+   neither player can move, the player with the most pieces wins.
 
-The timer counts time while the game page is open and the tab is visible. Local
-storage belongs to this browser. Clearing browser data removes that local copy.
-The leaderboard has no invented player records.
+Use the arrow keys to move across the board. Enter or Space selects a tile.
+CPU undo returns to the position before your last move and the CPU reply.
+Undo is not available in friend matches.
 
-## Character styles
+## Commands
 
-Add a record to `src/styles/characters.ts`. The collection and profile picker use
-this registry. A new palette or a supported accessory needs no other UI change.
-For a new accessory shape, add its geometry in `GameBoard.tsx` and its matching
-avatar drawing in `PillAvatar.tsx`. The registry has no fixed limit on styles.
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the website, local rankings, and friend rooms |
+| `npm run dev:web` | Start only the website |
+| `npm run dev:multiplayer` | Start only local PartyKit rooms |
+| `npm test` | Run rule, service, storage, audio, and network tests |
+| `npm run build` | Check TypeScript and build the website into `dist/` |
+| `npm run preview` | Inspect the built website locally; separate services are still needed |
+| `npm start` | Serve `dist/` and the SQLite ranking API on port 3001 |
+| `npm run deploy:multiplayer` | Deploy PartyKit services and the current `dist/` website |
 
-## Multiplayer next phase
+Run `npm run build` before `npm start`, `npm run preview`, or a deployment.
+The [CI workflow](.github/workflows/ci.yml) runs tests and the build for pushes
+and pull requests. See the [verification record](docs/verification.md) for browser
+checks and their limits.
 
-The rules in `src/game/engine.ts` have no browser or UI dependencies. The same
-rules can run inside a PartyKit room. `src/game/protocol.ts` defines versioned
-commands, state snapshots, player presence, revisions, and a transport interface.
-See [the integration guide](docs/multiplayer.md) for the next phase.
+## Deploy your own game
 
-The shared leaderboard currently lists CPU **practice** results. It validates
-legal moves but cannot prove who chose each move. Live competitive ratings must
-come from an authoritative multiplayer server. Sign-in, matchmaking, friends,
-and online competitive ranks are not implemented in this phase.
+There are two supported arrangements:
 
-## Artwork
+| Hosting | Website | Friend rooms | Practice rankings |
+| --- | --- | --- | --- |
+| PartyKit | PartyKit static assets | PartyKit | PartyKit storage |
+| Vercel + PartyKit | Vercel, using the Vite preset | PartyKit | PartyKit storage |
 
-The garden hero and ranking banner were generated with the built-in image tool.
-The app loads WebP files of about 95 KB each. PNG originals and the full prompts
-are included in [the asset record](docs/asset-prompts.md).
+Follow the [deployment guide](docs/deployment.md) for the build settings,
+environment variables, and allowed website address. A static Vercel deployment
+alone does not start the services in `server/` or `party/`.
 
-Sounds use [UI SFX](https://uisfx.com/) 0.4.0. Its small Web Audio runtime creates
-and caches the sounds locally; no remote audio files are needed. Audio starts
-after user input, uses one audio context, and stops when muted or the page is
-hidden. The UI SFX code is MIT licensed and its audio is CC0. The MIT notice is
-included in `public/licenses/uisfx.txt`.
+For a Node.js host, `npm start` serves the website and rankings. Keep its SQLite
+database on persistent storage and host friend rooms on PartyKit. See
+[server setup](server/README.md).
 
-The five background songs were supplied by the project owner. Two main themes
-play on menu pages, two match tracks alternate during play, and a human win plays
-the victory song once before the main themes return. A loss, draw, or surrender
-returns to the main themes. The music-note button in the header and the game
-Settings contain music on/off, volume, and Next song controls. Music starts at
-25% volume after user input. Its preferences are saved separately from the Zen
-and Dreamy sound effects.
+Deploy your own PartyKit project for a fork. The public demo address is for
+playing the demo; it is not the default service for other deployments. Production
+settings belong in your hosting dashboard or an ignored `.env.production.local`.
+Values that start with `VITE_` are visible to visitors. Never put secrets in them.
 
-Music uses one streaming audio element, with no song requests before user input.
-Track changes fade out and in. Hidden tabs pause playback and resume at the same
-position. MP3 audio is copied without conversion; embedded artwork and metadata
-were removed to save space. Source names and durations are listed in
-`public/audio/music/README.md`. Original files in the supplied folder are unchanged.
+## Data and limits
 
-## Project map
+- Profiles, preferences, CPU saves, result queues, and private room seat keys
+  are stored in the browser. Clearing site data removes those local copies.
+- The configured practice service stores submitted names, styles, moves, and
+  results. Clearing browser data does not remove results already sent to it.
+- Friend rooms use saved server state. A disconnected player has 60 seconds to
+  return. See [room behavior](docs/multiplayer.md) for expiry and rematch rules.
+- Friend matches are unranked. Practice rankings check legal moves, but cannot
+  prove who selected them. There is no account sign-in, random matchmaking,
+  friend list, or competitive rating system.
+- The current PartyKit practice store is for a small public game: at most 5,000
+  profiles and 50,000 result receipts. Larger use needs stronger abuse controls
+  and a more efficient ranking index.
+- Local SQLite data and hosted PartyKit data are separate. Deployment does not
+  copy local records to the public service.
+
+## Project guide
 
 | Path | Purpose |
 | --- | --- |
-| `src/App.tsx` | Pages, navigation, settings, and profile |
-| `src/lib/useGame.ts` | Local match lifecycle and CPU worker |
-| `src/lib/music.ts` | Background playlists, fades, and audio lifecycle |
-| `src/lib/useMusic.ts` | Music preferences and page/match integration |
-| `src/game/engine.ts` | Pure rules and bounded CPU search |
-| `src/game/protocol.ts` | Future multiplayer wire contract |
-| `src/components/GameBoard.tsx` | Three.js scene and accessible board |
-| `src/components/PillAvatar.tsx` | Lightweight character avatars |
-| `src/lib/leaderboard.ts` | Ranking client and persistent upload queue |
-| `server/` | SQLite ranking API and production web server |
-| `tests/` | Rule, API, persistence, and network retry tests |
+| `src/App.tsx` | Pages, navigation, profiles, and settings |
+| `src/game/` | Othello rules, CPU worker, and multiplayer protocol |
+| `src/lib/` | Match lifecycle, storage, network clients, audio, and music |
+| `src/components/` | Game board, pill characters, and page components |
+| `src/animation/` | Capture motion, expressions, and celebrations |
+| `src/styles/characters.ts` | Character style registry |
+| `party/` | Hosted friend rooms and practice ranking API |
+| `server/` | Node.js website server and SQLite practice API |
+| `public/` | Assets and license notices shipped with the website |
+| `tests/` | Automated checks |
+| `docs/` | Deployment, architecture, artwork sources, and verification |
 
-## Checks
+To add a character palette or a supported accessory, add a record to
+`src/styles/characters.ts`. A new accessory shape also needs Three.js geometry in
+`GameBoard.tsx` and an avatar drawing in `PillAvatar.tsx`.
 
-Run `npm test` for automated tests. Run `npm run build` for TypeScript checks and
-the production build. Browser checks cover desktop and phone layouts, real moves,
-CPU replies, undo, reload, character changes, settings, and a full match.
+## Contributing
+
+Bug reports, documentation fixes, and focused pull requests are welcome.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before you start. For a security issue,
+follow [SECURITY.md](SECURITY.md).
+
+## License and credits
+
+The code, original game artwork, documentation, and five supplied songs are
+released under [MIT](LICENSE). The game was built by
+[Vlad](https://x.com/deifosv) for his wife, who loves Othello.
+
+Third-party libraries and fonts retain their own licenses. See
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and the notices in
+[`public/licenses/`](public/licenses/). UI SFX provides the sound effects.
+Fredoka and Nunito provide the typefaces.
+
+The garden images were generated with an image tool. Source images, revisions,
+and prompts are in the [artwork record](docs/asset-prompts.md). The
+[music record](public/audio/music/README.md) lists the original songs.

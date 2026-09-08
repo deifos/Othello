@@ -25,10 +25,7 @@
     min-height: 117px !important;
   }
 }
-@media (max-width: 1250px) {
-  .app-shell {
-    padding: 0 30px !important;
-  }
+@media (max-width: 1400px) {
   .site-header {
     gap: 18px !important;
   }
@@ -48,6 +45,11 @@
   }
   .profile-button > span {
     max-width: 73px !important;
+  }
+}
+@media (max-width: 1250px) {
+  .app-shell {
+    padding: 0 30px !important;
   }
   .hero-content {
     padding-left: 35px !important;
@@ -130,7 +132,7 @@
     gap: 17px !important;
   }
 }
-@media (max-width: 1000px) {
+@media (max-width: 1100px) {
   .site-header {
     flex-wrap: wrap !important;
     min-height: 120px !important;
@@ -157,6 +159,8 @@
   .profile-button > span {
     max-width: 130px !important;
   }
+}
+@media (max-width: 1000px) {
   .hero-art {
     right: -17% !important;
     width: 88% !important;

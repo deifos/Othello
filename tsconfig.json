@@ -16,5 +16,5 @@
     "strict": true,
     "types": ["vite/client", "node"]
   },
-  "include": ["src", "server", "tests", "vite.config.ts"]
+  "include": ["src", "server", "party", "tests", "vite.config.ts"]
 }

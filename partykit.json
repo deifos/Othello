@@ -1,0 +1,8 @@
+{
+  "$schema": "https://www.partykit.io/schema.json",
+  "name": "flip-buddies",
+  "main": "party/server.ts",
+  "parties": { "practice": "party/practice.ts" },
+  "compatibilityDate": "2024-07-18",
+  "port": 1999
+}

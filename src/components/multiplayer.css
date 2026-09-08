@@ -1,0 +1,71 @@
+.friends-lobby { display: grid; grid-template-columns: 1.15fr 1fr; gap: clamp(30px, 6vw, 100px); align-items: center; padding: 38px 6% 64px; }
+.friends-intro h1 { font-family: "Fredoka", sans-serif; font-size: clamp(36px, 4.5vw, 62px); font-weight: 500; line-height: 1.12; letter-spacing: -1.5px; margin: 18px 0; }
+.friends-intro h1 span { color: var(--green); }
+.friends-intro > p { max-width: 370px; color: var(--ink); line-height: 1.8; }
+.friends-pals { display: flex; align-items: center; gap: 7px; padding: 18px 0 28px; }
+.friends-pals > span { color: #dcb756; font-size: 26px; }
+.friends-entry { padding: 32px; border: 1px solid var(--line); border-radius: 24px; background: var(--panel); box-shadow: var(--shadow); min-width: 0; }
+.friends-entry h2 { font-size: 23px; margin: 0 0 10px; color: var(--ink); }
+.friends-entry > p { color: var(--muted); font-size: 14px; line-height: 1.7; margin-bottom: 24px; }
+.friends-entry .button, .friends-entry form .button { width: 100%; min-height: 48px; }
+.friends-entry .field-label input { min-height: 48px; }
+.room-divider { display: flex; align-items: center; gap: 13px; font-size: 11px; color: var(--muted); margin: 30px 0 0; }
+.room-divider:before, .room-divider:after { content: ""; height: 1px; flex: 1; background: var(--line); }
+.room-footnote { color: var(--muted); font-size: 11px; line-height: 1.7; text-align: center; }
+.friends-entry .room-footnote { display: flex; align-items: center; gap: 7px; margin: 22px 0 0; font-size: 11px; }
+.room-error, .room-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 15px; margin-bottom: 22px; padding: 17px 22px; border: 1px solid #dabb84; border-radius: 16px; background: var(--cream); }
+.room-error > p, .room-confirm > div { flex: 1; min-width: 180px; margin: 0; }
+.room-confirm p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+.room-error .button, .room-confirm .button { min-height: 44px; }
+.room-invite { display: flex; align-items: center; gap: 24px; padding: 18px 24px; margin-bottom: 24px; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); flex-wrap: wrap; }
+.room-invite > div:first-child { flex-shrink: 0; }
+.room-invite .eyebrow { display: block; font-size: 9px; }
+.room-code { display: block; font-family: "Fredoka", sans-serif; font-size: 27px; font-weight: 500; letter-spacing: 3px; color: var(--green-dark); }
+.room-invite-link { flex: 1; min-width: 190px; }
+.room-invite-link label { display: block; font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+.room-invite-link input { display: block; width: 100%; min-width: 0; min-height: 36px; padding: 5px 0; color: var(--ink); font-size: 12px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; }
+.room-invite .button { min-height: 44px; }
+.room-connection { display: flex; gap: 6px; align-items: center; font-size: 11px; color: var(--muted); }
+.room-connection.connected { color: var(--green-dark); }
+.room-copy-help { width: 100%; margin: 0; color: var(--muted); font-size: 12px; }
+.room-waiting { text-align: center; padding: 34px 22px 52px; }
+.room-waiting-heading h1 { font-family: "Fredoka", sans-serif; font-size: clamp(29px, 3vw, 43px); font-weight: 500; letter-spacing: -.8px; margin: 15px 0 10px; }
+.room-waiting-heading p { color: var(--muted); font-size: 14px; margin: 0 auto; max-width: 480px; line-height: 1.8; }
+.room-seats { display: grid; grid-template-columns: repeat(2, minmax(0, 220px)); justify-content: center; gap: 22px; margin: 30px 0 26px; }
+.room-seat { display: flex; flex-direction: column; align-items: center; padding: 25px 16px 20px; border: 1px solid var(--line); border-radius: 22px; background: var(--panel); min-width: 0; }
+.room-seat.empty { background: var(--soft); border-style: dashed; }
+.room-seat > strong { margin-top: 15px; max-width: 100%; overflow-wrap: anywhere; }
+.room-seat > span { font-size: 11px; color: var(--muted); margin-top: 5px; }
+.room-seat .room-ready-tag { margin-top: 17px; padding: 5px 10px; background: var(--soft); border-radius: 20px; font-size: 10px; }
+.room-seat .room-ready-tag.ready { color: var(--green-dark); background: #92b95128; }
+.room-ready-button { min-width: 225px; min-height: 52px; }
+.multiplayer-page .game-sidebar .turn-card h2 { overflow-wrap: anywhere; }
+.multiplayer-page .player-name { overflow: hidden; text-overflow: ellipsis; }
+.multiplayer-page .mode-tag { display: inline-flex; align-items: center; gap: 6px; }
+[data-theme="dark"] .multiplayer-page .room-code,
+[data-theme="dark"] .multiplayer-page .room-connection.connected,
+[data-theme="dark"] .multiplayer-page .room-ready-tag.ready,
+[data-theme="dark"] .multiplayer-page .friends-intro h1 span,
+[data-theme="dark"] .multiplayer-page .text-link { color: #c6daa0; }
+@media (max-width: 900px) {
+  .friends-lobby { gap: 30px; padding-inline: 1%; }
+  .friends-entry { padding: 24px; }
+  .room-invite { gap: 14px; }
+}
+@media (max-width: 640px) {
+  .friends-lobby { grid-template-columns: minmax(0, 1fr); padding: 15px 0 35px; gap: 32px; }
+  .friends-intro { padding: 0 12px; }
+  .friends-intro h1 { font-size: clamp(37px, 8vw, 50px); }
+  .friends-pals { padding-bottom: 18px; }
+  .friends-entry { padding: 25px 20px; }
+  .room-invite { padding: 17px; justify-content: space-between; }
+  .room-invite-link { order: 3; flex-basis: 100%; }
+  .room-invite .room-connection { order: 4; }
+  .room-invite .button { padding-inline: 12px; font-size: 12px; }
+  .room-waiting { padding-inline: 0; }
+  .room-seats { gap: 10px; }
+  .room-seat { padding-inline: 8px; }
+  .room-seat > strong { font-size: 13px; }
+  .room-seat > span { font-size: 10px; }
+  .multiplayer-page .page-topline { flex-wrap: wrap; row-gap: 14px; }
+}

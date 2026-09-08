@@ -230,6 +230,7 @@ button svg {
   display: flex;
   align-items: center;
   gap: 21px;
+  min-width: 0;
 }
 .theme-switch {
   display: flex;
@@ -265,6 +266,7 @@ button svg {
   font-size: 13px;
   font-weight: 700;
   max-width: 190px;
+  min-width: 0;
 }
 .profile-button > span {
   max-width: 105px;
@@ -274,6 +276,7 @@ button svg {
 }
 .profile-button > svg {
   color: #8a7d6b;
+  flex-shrink: 0;
 }
 .button {
   display: inline-flex;

@@ -1,6 +1,8 @@
 # Flip-pocalypse music
 
-The project owner supplied these five original songs from `E:/MYWORKVIDEOS/othello-songs` for use in this game.
+The project owner supplied these five original songs and released them under
+the [MIT license](../../licenses/flip-buddies.txt). You can use, change, and redistribute them
+under that license. Keep the copyright and license notice with your copies.
 
 | Game asset | Original file | Use | Duration |
 | --- | --- | --- | --- |
@@ -12,4 +14,5 @@ The project owner supplied these five original songs from `E:/MYWORKVIDEOS/othel
 
 The game files retain the original MP3 audio stream (48 kHz, stereo). FFmpeg stream copy removed embedded cover art and metadata; it did not encode the audio again or change its volume. Each decoded audio checksum matches its source. The source files were not changed.
 
-These songs are separate from the UI SFX library and its license. No additional license or redistribution grant is specified here.
+These songs are separate from the UI SFX library and its sound effects.
+See [third-party notices](../../../THIRD_PARTY_NOTICES.md) for that library.

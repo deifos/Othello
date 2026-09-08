@@ -2,13 +2,26 @@
 
 Created with the built-in `image_gen` tool on 2026-09-06. These are new images. The supplied game mockups guided the art brief. No mockup text or interface was included in the assets.
 
-The PNG originals are retained in `public/assets`. The app should load the WebP copies. WebP conversion used quality 86 and retained the full pixel dimensions. Both WebP files were checked visually after conversion.
+PNG source images and unused revisions are retained in [artwork/](artwork/).
+They stay outside `public/`, so the website build does not ship them. The app
+loads only the current WebP images. The first WebP conversions used quality 86
+and retained the full pixel dimensions. The original game artwork uses the
+[project MIT license](../LICENSE).
 
 | Asset | Dimensions | WebP size |
 | --- | --- | --- |
-| `public/assets/hero-garden.webp` | 1536 × 1024 | 95,008 bytes |
-| `public/assets/hero-garden-live.webp` | 1536 × 1024 | 107,176 bytes |
+| `docs/artwork/hero-garden.webp` | 1536 × 1024 | 95,008 bytes |
+| `docs/artwork/hero-garden-live.webp` | 1536 × 1024 | 107,176 bytes |
+| `docs/artwork/hero-garden-live-v2.webp` | 1536 × 1024 | 110,188 bytes |
+| `public/assets/hero-garden-live-v3.webp` (current hero) | 1536 × 1024 | 138,624 bytes |
 | `public/assets/leaderboard-garden.webp` | 1774 × 887 | 92,240 bytes |
+
+The current hero's source PNG is
+[`artwork/hero-garden-live-v3.png`](artwork/hero-garden-live-v3.png).
+The ranking banner's source is
+[`artwork/leaderboard-garden.png`](artwork/leaderboard-garden.png).
+The five WebP files in `public/assets/game-backgrounds/` supply the rotating
+game backgrounds; the original record does not include their full prompts.
 
 ## Live hero face edit
 
@@ -19,7 +32,8 @@ peach cheeks. Preserve the 1536 × 1024 frame, body positions and sizes, shadows
 highlights, garden, flowers, board, and tree including its face. Add no objects
 or text. Retain the original composition, colors, lighting, and texture.
 
-The edited PNG is saved beside its WebP copy. `HeroGarden` overlays live SVG
+The edited PNG and earlier WebP versions are archived in `docs/artwork/`.
+`HeroGarden` loads the current v3 WebP from `public/assets/` and overlays live SVG
 faces in the same image coordinates. Both faces blink independently and share
 the game's expression drawings.
 

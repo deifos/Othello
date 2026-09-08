@@ -37,6 +37,8 @@ import PillAvatar from "./components/PillAvatar";
 import SoundStylePicker from "./components/SoundStylePicker";
 import MusicSettings from "./components/MusicSettings";
 import { useMusic } from "./lib/useMusic";
+import { useMultiplayer } from "./lib/useMultiplayer";
+import MultiplayerPage from "./components/MultiplayerPage";
 import {
   configureGameAudio,
   isSoundStyle,
@@ -46,7 +48,8 @@ import {
   unlockGameAudio,
   type SoundStyle,
 } from "./lib/gameAudio";
-import ResultPortrait, { type ResultOutcome } from "./components/ResultPortrait";
+import type { ResultOutcome } from "./components/ResultPortrait";
+import PlayerCard from "./components/PlayerCard";
 import "./components/character-picker.css";
 import HomeLanding from "./components/HomeLanding";
 import SiteFooter, {
@@ -55,7 +58,6 @@ import SiteFooter, {
 } from "./components/SiteFooter";
 import type { InformationPage } from "./components/SiteFooter";
 import { CHARACTER_STYLES } from "./styles/characters";
-import type { Expression } from "./styles/expressions";
 import { useGame } from "./lib/useGame";
 import type { Difficulty } from "./lib/useGame";
 import {
@@ -73,7 +75,7 @@ import {
 } from "./lib/leaderboard";
 import type { Ranking } from "./lib/leaderboard";
 const GameBoard = lazy(() => import("./components/GameBoard"));
-type Page = "home" | "play" | "leaderboard" | "how-to-play" | "characters";
+type Page = "home" | "play" | "multiplayer" | "leaderboard" | "how-to-play" | "characters";
 
 const GAME_BACKGROUNDS = [
   "/assets/game-backgrounds/garden-path.webp",
@@ -161,8 +163,8 @@ function GameBackdrop() {
 }
 
 function getPage(): Page {
-  const p = location.hash.slice(1);
-  return ["play", "leaderboard", "how-to-play", "characters"].includes(p)
+  const p = location.hash.slice(1).split("/")[0];
+  return ["play", "multiplayer", "leaderboard", "how-to-play", "characters"].includes(p)
     ? (p as Page)
     : "home";
 }
@@ -236,9 +238,17 @@ export default function App() {
   const silentNavigation = useRef(false);
   const [toast, setToast] = useState("");
   const game = useGame(page === "play", sound);
+  const multiplayer = useMultiplayer(profile);
+  const currentRoom = useRef(multiplayer.roomCode);
+  currentRoom.current = multiplayer.roomCode;
+  const onlinePlayer = multiplayer.snapshot?.players.find((player) => player.id === multiplayer.playerId);
+  const onlineVictory = multiplayer.snapshot?.phase === "finished" &&
+    multiplayer.snapshot.result?.winner === onlinePlayer?.color;
   const music = useMusic(
-    page === "play" && !game.state.finished ? "match" : "menu",
-    page === "play" && game.state.finished && !game.state.surrendered &&
+    (page === "play" && !game.state.finished) ||
+      (page === "multiplayer" && multiplayer.snapshot?.phase === "playing") ? "match" : "menu",
+    page === "multiplayer" && onlineVictory ? multiplayer.snapshot!.matchId :
+      page === "play" && game.state.finished && !game.state.surrendered &&
       game.score.black > game.score.white ? game.state.id : null,
   );
   const [defaultDifficulty, setDefaultDifficulty] = useState<Difficulty>(
@@ -252,6 +262,21 @@ export default function App() {
     window.addEventListener("hashchange", listener);
     return () => window.removeEventListener("hashchange", listener);
   }, []);
+  useEffect(() => {
+    const followInvite = () => {
+      if (!location.hash.startsWith("#multiplayer/")) return;
+      const code = location.hash.slice("#multiplayer/".length);
+      if (code && code !== currentRoom.current) multiplayer.joinRoom(code);
+    };
+    followInvite();
+    window.addEventListener("hashchange", followInvite);
+    return () => window.removeEventListener("hashchange", followInvite);
+  }, [multiplayer.joinRoom]);
+  useEffect(() => {
+    if (page !== "multiplayer") return;
+    const hash = multiplayer.roomCode ? `#multiplayer/${multiplayer.roomCode}` : "#multiplayer";
+    if (location.hash !== hash) history.replaceState(null, "", hash);
+  }, [page, multiplayer.roomCode]);
   useEffect(() => {
     document.documentElement.dataset.theme = dark ? "dark" : "light";
     writeStored("flip.dark", dark);
@@ -377,7 +402,7 @@ export default function App() {
   }
   return (
     <div className="app-shell" data-page={page}>
-      {(page === "home" || page === "play") && <GameBackdrop />}
+      {(page === "home" || page === "play" || page === "multiplayer") && <GameBackdrop />}
       <a
         className="skip-link"
         href="#main"
@@ -403,6 +428,9 @@ export default function App() {
           >
             <Gamepad2 />
             Play
+          </button>
+          <button className={page === "multiplayer" ? "active" : ""} onClick={() => navigate("multiplayer")}>
+            <Users /> Friends
           </button>
           <button
             className={page === "leaderboard" ? "active" : ""}
@@ -478,7 +506,7 @@ export default function App() {
             onLearn={() => navigate("how-to-play")}
             onRankings={() => navigate("leaderboard")}
             onCharacters={() => navigate("characters")}
-            onFriends={() => setModal("multiplayer")}
+            onFriends={() => navigate("multiplayer")}
             onSettings={() => setModal("settings")}
             continuing={
               game.state.started &&
@@ -502,6 +530,11 @@ export default function App() {
             onBack={() => navigate("home")}
             onCharacters={() => navigate("characters")}
           />
+        )}
+        {page === "multiplayer" && (
+          <MultiplayerPage multiplayer={multiplayer} profile={profile} motion={motion}
+            onBack={() => navigate("home")} onSettings={() => setModal("settings")}
+            onCharacters={() => navigate("characters")} />
         )}
         {page === "characters" && (
           <Characters
@@ -609,7 +642,7 @@ export default function App() {
                   }}
                 />
               </label>
-              <label className="field-label">
+              {page !== "multiplayer" && <><label className="field-label">
                 CPU level for your next game
                 <select
                   value={defaultDifficulty}
@@ -625,16 +658,16 @@ export default function App() {
               </label>
               <p className="fine-print">
                 The current match keeps its CPU level.
-              </p>
+              </p></>}
               <Button kind="primary" onClick={() => closeModal()}>
                 All set <Check size={18} />
               </Button>
-              <button
+              {page !== "multiplayer" && <button
                 className="settings-new text-link"
                 onClick={() => setModal("new")}
               >
                 Start a new game <RotateCcw size={14} />
-              </button>
+              </button>}
             </div>
           )}
           {(modal === "surrender" || modal === "new") && (
@@ -928,77 +961,6 @@ function GameView({
     </div>
   );
 }
-function PlayerCard({
-  name,
-  color,
-  score,
-  active,
-  styleId,
-  you = false,
-  outcome,
-  reducedMotion = false,
-}: {
-  name: string;
-  color: "black" | "white";
-  score: number;
-  active: boolean;
-  styleId: string;
-  you?: boolean;
-  outcome?: ResultOutcome;
-  reducedMotion?: boolean;
-}) {
-  const previousScore = useRef(score);
-  const [reaction, setReaction] = useState<Expression>();
-  useEffect(() => {
-    const change = score - previousScore.current;
-    previousScore.current = score;
-    if (reducedMotion || change === 0) {
-      setReaction(undefined);
-      return;
-    }
-    setReaction(change > 0 ? "grin" : "sad");
-    const clear = setTimeout(() => setReaction(undefined), 1400);
-    return () => clearTimeout(clear);
-  }, [score, reducedMotion]);
-  return (
-    <section className={`player-card ${active ? "is-active" : ""}`}>
-      <ResultPortrait
-        color={color}
-        styleId={styleId}
-        outcome={outcome}
-        expression={
-          reaction ?? (!you && active ? "curious" : undefined)
-        }
-        blink={reaction ? "open" : undefined}
-        reducedMotion={reducedMotion}
-      />
-      <div>
-        <div className="player-title">
-          <strong>{color === "black" ? "Black" : "White"}</strong>
-          {you ? (
-            <span className="you-tag">You</span>
-          ) : (
-            <span className="cpu-tag">CPU</span>
-          )}
-        </div>
-        <div className="player-score">
-          {score}
-          <span>pills</span>
-        </div>
-        <span className="player-name">{name}</span>
-      </div>
-      <div className="score-track">
-        {Array.from({ length: 8 }, (_, i) => (
-          <span
-            key={i}
-            className={i < Math.ceil(score / 8) ? `filled ${color}` : ""}
-          />
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function Characters({
   profile,
   onSelect,
@@ -1426,8 +1388,7 @@ function Leaderboard({
             )}
             <div className="ranking-footnote">
               <ShieldCheck size={14} />
-              CPU practice results. Online competitive ranks arrive with
-              multiplayer.
+              CPU practice results. Friendly matches are unranked.
             </div>
           </section>
         </div>
@@ -1515,9 +1476,9 @@ function Leaderboard({
           </section>
           <p className="future-note">
             <Users size={18} />
-            Friends and live matches are growing.
+            Invite a friend from the Friends page.
             <br />
-            For now, meet your match in the CPU.
+            Share a room and play together.
           </p>
         </aside>
       </div>

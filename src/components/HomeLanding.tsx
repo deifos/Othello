@@ -95,9 +95,9 @@ export default function HomeLanding(props: HomeLandingProps) {
           </span>
           <h2>Play Together</h2>
           <p>
-            Friends join next.
+            Invite a friend.
             <br />
-            Practice with the CPU.
+            Share a board and a smile.
           </p>
         </button>
         <button onClick={props.onCharacters}>
