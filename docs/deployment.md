@@ -5,6 +5,14 @@ including friend rooms and practice rankings. PartyKit and Node.js are
 alternative hosting options.
 Use your own hosting accounts and service addresses when you deploy a fork.
 
+## Link previews
+
+`index.html` includes Open Graph and X large-image card tags. The shared image
+is `public/og-image.jpg` (1200 × 630 JPEG). Update the canonical URL, `og:url`,
+and both image URLs in `index.html` when you deploy to a different domain.
+These tags must use absolute public HTTPS URLs. Hash-based game links share
+the same card. Preview services can cache old cards after a deployment.
+
 ## Before deployment
 
 Use Node.js 24.x and the committed lockfile:
